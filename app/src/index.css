@@ -1,0 +1,50 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Font pairing classes for the poster canvas */
+.font-classic-academic {
+  --font-display: 'Lora', serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+}
+.font-modern {
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+.font-clean {
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Source Sans 3', sans-serif;
+}
+.font-simple {
+  --font-display: Georgia, serif;
+  --font-body: Arial, sans-serif;
+}
+
+/* Print styles */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  #poster-canvas {
+    transform: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  @page {
+    size: A1 landscape;
+    margin: 0;
+  }
+}
