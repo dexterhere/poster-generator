@@ -10,10 +10,12 @@ const LAYOUTS: { id: HeaderLayout; label: string; description: string }[] = [
 ];
 
 const TITLE_SIZES = [
-  { value: 'sm', label: 'S' },
-  { value: 'md', label: 'M' },
-  { value: 'lg', label: 'L' },
-  { value: 'xl', label: 'XL' },
+  { value: 'sm',  label: 'S'   },
+  { value: 'md',  label: 'M'   },
+  { value: 'lg',  label: 'L'   },
+  { value: 'xl',  label: 'XL'  },
+  { value: 'xxl', label: 'XXL' },
+  { value: '3xl', label: '3XL' },
 ] as const;
 
 const HeaderPanel: React.FC = () => {
@@ -78,12 +80,12 @@ const HeaderPanel: React.FC = () => {
       {/* Title size */}
       <div>
         <label className={labelClass}>Title Size</label>
-        <div className="flex gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {TITLE_SIZES.map((s) => (
             <button
               key={s.value}
               onClick={() => updateHeader({ titleSize: s.value })}
-              className={`flex-1 py-1.5 rounded-md text-sm font-bold transition-all border ${
+              className={`py-1.5 rounded-md text-sm font-bold transition-all border ${
                 header.titleSize === s.value
                   ? 'border-indigo-500 bg-indigo-500 text-white'
                   : 'border-neutral-200 text-neutral-600 hover:border-neutral-400'

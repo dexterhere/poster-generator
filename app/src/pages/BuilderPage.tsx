@@ -1,234 +1,243 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePosterStore } from '../store/usePosterStore';
-import HeaderPanel from '../components/panels/HeaderPanel';
-import SectionsListPanel from '../components/panels/SectionsListPanel';
-import ThemePanel from '../components/panels/ThemePanel';
-import ExportPanel from '../components/panels/ExportPanel';
-import SectionEditor from '../components/editor/SectionEditor';
+import TopBar from '../components/layout/TopBar';
+import LeftPanel from '../components/layout/LeftPanel';
+import RightInspector from '../components/layout/RightInspector';
 import PosterHeader from '../components/poster/PosterHeader';
 import PosterFooter from '../components/poster/PosterFooter';
 import PosterCanvas from '../components/poster/PosterCanvas';
 import PosterRuler, { RULER_SIZE } from '../components/poster/PosterRuler';
-import { Layout, Type, Palette, Download, ChevronLeft, Maximize, Minimize, ZoomIn, ZoomOut, Search, Scan } from 'lucide-react';
 
-type Tab = 'header' | 'sections' | 'theme' | 'export';
-
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'header', label: 'Header', icon: <Type size={14} /> },
-  { id: 'sections', label: 'Sections', icon: <Layout size={14} /> },
-  { id: 'theme', label: 'Theme', icon: <Palette size={14} /> },
-  { id: 'export', label: 'Export', icon: <Download size={14} /> },
-];
+type PanelId = 'header' | 'sections' | 'theme' | 'export';
 
 const BuilderPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('header');
+  const [activePanel, setActivePanel] = useState<PanelId | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number | 'fit'>('fit');
-  const { selectedSectionId, theme, layout } = usePosterStore();
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const { selectedSectionId, setSelectedSection, deleteSection, theme, layout } = usePosterStore();
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate full screen scale
-  React.useEffect(() => {
-    const handleResize = () => {
-      // Force re-render on resize if fullscreen
-      if (isFullScreen) setActiveTab(activeTab);
+  // ─── Keyboard shortcuts ────────────────────────────────────────────────────
+  useEffect(() => {
+    const handle = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      const editable =
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        (e.target as HTMLElement).isContentEditable;
+      if (e.key === 'Escape') setSelectedSection(null);
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSectionId && !editable) {
+        deleteSection(selectedSectionId);
+      }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isFullScreen, activeTab]);
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [selectedSectionId, setSelectedSection, deleteSection]);
 
-  // Auto-switch to sections tab when a section is clicked on the canvas
-  React.useEffect(() => {
-    if (selectedSectionId && activeTab !== 'sections' && !isFullScreen) {
-      setActiveTab('sections');
-    }
-  }, [selectedSectionId, isFullScreen]);
-
-  const getDynamicScale = () => {
+  // ─── Dynamic scale (fit to viewport) ──────────────────────────────────────
+  const getDynamicScale = useCallback(() => {
     const padding = 80;
-    const sidebarWidth = isFullScreen ? 0 : 360;
+    const leftW  = (!isFullScreen && activePanel)      ? 300 : 0;
+    const rightW = (!isFullScreen && selectedSectionId) ? 280 : 0;
     const rulerSpace = (!isFullScreen && theme.rulerEnabled) ? RULER_SIZE * 2 : 0;
-    const availableWidth = window.innerWidth - sidebarWidth - padding - rulerSpace;
-    const availableHeight = window.innerHeight - padding - rulerSpace;
-    const scaleX = availableWidth / layout.width;
-    const scaleY = availableHeight / layout.height;
-    return Math.min(scaleX, scaleY);
-  };
+    const topBarH = isFullScreen ? 0 : 48;
+    const availableWidth  = window.innerWidth  - leftW - rightW - padding - rulerSpace;
+    const availableHeight = window.innerHeight - topBarH - padding - rulerSpace;
+    return Math.min(availableWidth / layout.width, availableHeight / layout.height);
+  }, [isFullScreen, activePanel, selectedSectionId, theme.rulerEnabled, layout.width, layout.height]);
 
   const currentScale = zoomLevel === 'fit' ? getDynamicScale() : zoomLevel;
 
-  React.useEffect(() => {
+  // Re-render on window resize when in fit mode
+  useEffect(() => {
+    const onResize = () => { if (zoomLevel === 'fit') setZoomLevel('fit'); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [zoomLevel]);
+
+  // Ctrl + wheel zoom
+  useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        setZoomLevel(prev => {
-          const current = prev === 'fit' ? getDynamicScale() : prev;
-          const zoomStep = 0.1;
-          if (e.deltaY > 0) return Math.max(0.1, current - zoomStep);
-          return Math.min(3.0, current + zoomStep);
-        });
-      }
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      setZoomLevel((prev) => {
+        const base = prev === 'fit' ? getDynamicScale() : prev;
+        const next = e.deltaY > 0 ? base - 0.1 : base + 0.1;
+        return parseFloat(Math.min(3.0, Math.max(0.1, next)).toFixed(1));
+      });
     };
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, [layout.width, layout.height, isFullScreen]);
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [getDynamicScale]);
 
-  return (
-    <div className={`flex w-screen h-screen overflow-hidden text-neutral-900 font-sans ${isFullScreen ? 'bg-neutral-900' : 'bg-neutral-100'}`}>
+  // ─── Panel toggle ──────────────────────────────────────────────────────────
+  const handlePanelToggle = (panel: PanelId) =>
+    setActivePanel((prev) => (prev === panel ? null : panel));
 
-      {/* ─── LEFT PANEL ─── */}
-      {!isFullScreen && (
-        <div className="w-[360px] flex-shrink-0 bg-white border-r border-neutral-200 flex flex-col shadow-sm z-10 print:hidden">
+  // ─── Export / Print ────────────────────────────────────────────────────────
+  const handleExportClick = () => {
+    const { width, height } = layout;
+    const CSS_PX_PER_MM = 96 / 25.4;
+    const styleEl = document.createElement('style');
+    styleEl.id = '__poster-print-size__';
+    styleEl.textContent = `
+      @page { size: ${width}mm ${height}mm; margin: 0; }
+      @media print {
+        #poster-canvas {
+          width: ${width}px !important;
+          height: ${height}px !important;
+          transform: scale(${CSS_PX_PER_MM}) !important;
+          transform-origin: top left !important;
+        }
+      }
+    `;
+    document.head.appendChild(styleEl);
+    window.print();
+    window.addEventListener('afterprint', () => {
+      document.getElementById('__poster-print-size__')?.remove();
+    }, { once: true });
+  };
 
-        {/* Branding */}
-        <div className="px-5 py-4 border-b border-neutral-200 flex items-center justify-between">
-          <div>
-            <Link to="/" className="flex items-center gap-1.5 text-neutral-400 hover:text-neutral-700 text-xs mb-1 transition-colors">
-              <ChevronLeft size={12} /> Home
-            </Link>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent leading-tight">
-              Poster Generator
-            </h1>
-          </div>
-          <span className="text-[10px] text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full font-medium">{layout.name}</span>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-neutral-200 bg-neutral-50">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-all border-b-2 ${
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600 bg-white'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-700'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto">
-          {activeTab === 'header' && <HeaderPanel />}
-          {activeTab === 'sections' && (
-            <>
-              <SectionsListPanel />
-              {selectedSectionId && (
-                <div className="border-t border-neutral-200">
-                  <SectionEditor />
-                </div>
-              )}
-            </>
-          )}
-          {activeTab === 'theme' && <ThemePanel />}
-          {activeTab === 'export' && <ExportPanel />}
-        </div>
-      </div>
-      )}
-
-      {/* ─── RIGHT: POSTER CANVAS ─── */}
-      <div 
-        ref={containerRef}
-        className={`flex-1 overflow-auto flex print:p-0 print:bg-white relative ${isFullScreen ? 'p-0 bg-neutral-900' : 'p-8 bg-neutral-200/60'}`}
-        style={{ alignItems: currentScale === getDynamicScale() ? 'center' : 'flex-start', justifyContent: currentScale === getDynamicScale() ? 'center' : 'flex-start' }}
-      >
-        
-        {/* Full Screen Toggle */}
-        <button
-          onClick={() => setIsFullScreen(!isFullScreen)}
-          className={`fixed top-4 right-6 z-50 p-2 rounded-full shadow-md print:hidden flex items-center justify-center transition-colors ${
-            isFullScreen 
-              ? 'bg-neutral-800 text-white hover:bg-neutral-700 border border-neutral-700' 
-              : 'bg-white text-neutral-600 hover:text-indigo-600 hover:bg-indigo-50 border border-neutral-200'
-          }`}
-          title={isFullScreen ? "Exit Full Screen" : "Fill Screen Preview"}
-        >
-          {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
-        </button>
-
-        {/* Zoom Controls */}
-        <div className="fixed bottom-6 right-6 z-50 flex items-center bg-white border border-neutral-200 shadow-lg rounded-lg overflow-hidden print:hidden text-neutral-600 font-medium select-none">
-          <button
-            onClick={() => setZoomLevel(prev => Math.max(0.1, (prev === 'fit' ? getDynamicScale() : prev) - 0.1))}
-            className="p-2 hover:bg-neutral-100 border-r border-neutral-200"
-            title="Zoom Out"
-          ><ZoomOut size={16} /></button>
-          <span className="text-[11px] px-2 w-14 text-center select-none font-bold text-indigo-700 tabular-nums">
-            {Math.round(currentScale * 100)}%
-          </span>
-          <button
-            onClick={() => setZoomLevel(prev => Math.min(3.0, (prev === 'fit' ? getDynamicScale() : prev) + 0.1))}
-            className="p-2 hover:bg-neutral-100 border-x border-neutral-200"
-            title="Zoom In"
-          ><ZoomIn size={16} /></button>
-          <button
-            onClick={() => setZoomLevel(1)}
-            className={`p-2 hover:bg-neutral-100 border-r border-neutral-200 text-[10px] font-bold ${!isFullScreen && zoomLevel === 1 ? 'text-indigo-600 bg-indigo-50' : ''}`}
-            title="Actual Size (1px = 1mm)"
-          ><Scan size={16} /></button>
-          <button
-            onClick={() => setZoomLevel('fit')}
-            className={`p-2 hover:bg-neutral-100 ${zoomLevel === 'fit' ? 'text-indigo-600 bg-indigo-50' : ''}`}
-            title="Fit to Screen"
-          ><Search size={16} /></button>
-        </div>
-
-        {/* Ruler + canvas wrapper — ruler strips sit just outside the poster edges */}
-        <div
-          className="relative transition-all duration-200"
-          style={{
-            marginLeft: isFullScreen || !theme.rulerEnabled ? 0 : RULER_SIZE,
-            marginTop:  isFullScreen || !theme.rulerEnabled ? 0 : RULER_SIZE,
-            minWidth:  layout.width  * currentScale,
-            minHeight: layout.height * currentScale,
-          }}
-        >
-          {/* Corner square */}
-          {!isFullScreen && theme.rulerEnabled && (
-            <div
-              className="absolute print:hidden bg-neutral-300 border-b border-r border-neutral-400 z-20"
-              style={{ top: -RULER_SIZE, left: -RULER_SIZE, width: RULER_SIZE, height: RULER_SIZE }}
-            />
-          )}
-
-          {/* Horizontal ruler (top) */}
-          {!isFullScreen && theme.rulerEnabled && (
-            <div className="absolute print:hidden z-20" style={{ top: -RULER_SIZE, left: 0 }}>
-              <PosterRuler orientation="horizontal" length={layout.width} scale={currentScale} />
-            </div>
-          )}
-
-          {/* Vertical ruler (left) */}
-          {!isFullScreen && theme.rulerEnabled && (
-            <div className="absolute print:hidden z-20" style={{ top: 0, left: -RULER_SIZE }}>
-              <PosterRuler orientation="vertical" length={layout.height} scale={currentScale} />
-            </div>
-          )}
-
-          {/* Poster canvas — font-pairing class cascades CSS font variables to all children */}
+  // ─── Fullscreen mode ───────────────────────────────────────────────────────
+  if (isFullScreen) {
+    const fsScale = Math.min(
+      window.innerWidth / layout.width,
+      window.innerHeight / layout.height
+    );
+    const scaledW = layout.width * fsScale;
+    const scaledH = layout.height * fsScale;
+    return (
+      <div className="w-screen h-screen bg-neutral-900 flex items-center justify-center overflow-hidden">
+        <div style={{ width: scaledW, height: scaledH, position: 'relative', flexShrink: 0 }}>
           <div
             id="poster-canvas"
-            className={`bg-white shadow-2xl print:shadow-none absolute origin-top-left flex flex-col font-${theme.fontPairing}`}
+            className={`font-${theme.fontPairing} flex flex-col bg-white`}
             style={{
-              width: `${layout.width}px`,
-              height: `${layout.height}px`,
-              transform: `scale(${currentScale})`,
+              width: layout.width,
+              height: layout.height,
+              transform: `scale(${fsScale})`,
+              transformOrigin: 'top left',
+              position: 'absolute',
+              top: 0,
+              left: 0,
             }}
           >
             <PosterHeader />
-            <div className="flex-1 overflow-hidden relative" style={{ minHeight: '800px' }}>
-              <PosterCanvas />
-            </div>
+            <PosterCanvas scale={fsScale} />
             {theme.footerEnabled && <PosterFooter />}
           </div>
         </div>
+        <button
+          onClick={() => setIsFullScreen(false)}
+          className="fixed top-4 right-4 bg-white/90 text-neutral-700 px-3 py-1.5 rounded-lg text-sm font-semibold shadow-lg hover:bg-white transition-colors z-50"
+        >
+          Exit Fullscreen
+        </button>
+      </div>
+    );
+  }
+
+  // ─── Poster dimensions after scaling ──────────────────────────────────────
+  const scaledW = layout.width * currentScale;
+  const scaledH = layout.height * currentScale;
+  const rulerPad = theme.rulerEnabled ? RULER_SIZE : 0;
+  const canvasPad = 40;
+
+  return (
+    <div className="flex flex-col w-screen h-screen overflow-hidden bg-neutral-100">
+
+      {/* Top bar */}
+      <TopBar
+        zoomLevel={zoomLevel}
+        currentScale={currentScale}
+        isFullScreen={isFullScreen}
+        layoutName={layout.name}
+        activePanel={activePanel}
+        onZoomChange={setZoomLevel}
+        onFullScreenToggle={() => setIsFullScreen(true)}
+        onExportClick={handleExportClick}
+        onPanelToggle={handlePanelToggle}
+      />
+
+      {/* Main body */}
+      <div className="flex flex-1 overflow-hidden relative">
+
+        {/* Left sliding panel — overlays the canvas */}
+        <LeftPanel activePanel={activePanel} onClose={() => setActivePanel(null)} />
+
+        {/* ─── Canvas workspace ─────────────────────────────────────────── */}
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-auto canvas-workspace"
+          style={{
+            paddingLeft:  activePanel       ? 300 : 0,
+            paddingRight: selectedSectionId ? 280 : 0,
+            transition: 'padding-left 200ms ease-in-out, padding-right 200ms ease-in-out',
+          }}
+        >
+          {/*
+            Inner wrapper is sized to the true visual footprint of the scaled poster
+            (plus padding + optional ruler space). The poster itself uses position:absolute
+            with a CSS transform so the parent can scroll correctly.
+          */}
+          <div
+            style={{
+              minWidth: scaledW + rulerPad + canvasPad * 2,
+              minHeight: scaledH + rulerPad + canvasPad * 2,
+              padding: canvasPad,
+              paddingLeft: canvasPad + rulerPad,
+              paddingTop: canvasPad + rulerPad,
+              position: 'relative',
+              display: 'inline-block',
+            }}
+          >
+            {/* Horizontal ruler */}
+            {theme.rulerEnabled && (
+              <div style={{ position: 'absolute', top: canvasPad, left: canvasPad + rulerPad }}>
+                <PosterRuler orientation="horizontal" length={layout.width} scale={currentScale} />
+              </div>
+            )}
+            {/* Vertical ruler */}
+            {theme.rulerEnabled && (
+              <div style={{ position: 'absolute', top: canvasPad + rulerPad, left: canvasPad }}>
+                <PosterRuler orientation="vertical" length={layout.height} scale={currentScale} />
+              </div>
+            )}
+
+            {/* Scaled poster wrapper — gives the layout system the correct visual size */}
+            <div
+              style={{
+                width: scaledW,
+                height: scaledH,
+                position: 'relative',
+                flexShrink: 0,
+              }}
+            >
+              <div
+                id="poster-canvas"
+                className={`font-${theme.fontPairing} flex flex-col bg-white`}
+                style={{
+                  width: layout.width,
+                  height: layout.height,
+                  transform: `scale(${currentScale})`,
+                  transformOrigin: 'top left',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                }}
+              >
+                <PosterHeader />
+                <PosterCanvas scale={currentScale} />
+                {theme.footerEnabled && <PosterFooter />}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right inspector — slides in when a section is selected */}
+        <RightInspector isVisible={!!selectedSectionId} />
       </div>
     </div>
   );

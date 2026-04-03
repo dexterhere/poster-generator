@@ -141,6 +141,46 @@ const SectionEditor: React.FC = () => {
           </div>
         </div>
 
+        {/* ─── Container Style ─── */}
+        <div>
+          <label className={labelClass}>Container Style</label>
+          <div className="grid grid-cols-4 gap-1 mb-2">
+            {([
+              { value: 'default',    label: 'Default' },
+              { value: 'card',       label: 'Card' },
+              { value: 'outline',    label: 'Outline' },
+              { value: 'none',       label: 'None' },
+              { value: 'accent-top', label: 'Accent' },
+              { value: 'filled',     label: 'Filled' },
+              { value: 'minimal',    label: 'Minimal' },
+            ] as const).map((opt) => {
+              const active = (style.containerStyle ?? 'default') === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setStyle({ containerStyle: opt.value })}
+                  className={`text-[9px] py-1.5 px-1 rounded border-2 font-medium transition-all ${
+                    active
+                      ? 'border-indigo-500 bg-indigo-600 text-white'
+                      : 'border-neutral-200 text-neutral-600 hover:border-indigo-300 hover:bg-indigo-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={style.hideTitle ?? false}
+              onChange={(e) => setStyle({ hideTitle: e.target.checked })}
+              className="accent-indigo-600 w-3.5 h-3.5"
+            />
+            <span className="text-[11px] text-neutral-600 font-medium">Hide title bar (more content space)</span>
+          </label>
+        </div>
+
         {/* ─── Layout ─── */}
         <div>
           <label className={labelClass}>Layout</label>

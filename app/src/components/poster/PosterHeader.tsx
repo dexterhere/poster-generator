@@ -1,11 +1,14 @@
 import React, { useRef } from 'react';
 import { usePosterStore } from '../../store/usePosterStore';
+import { hexOpacity } from '../../utils/colorUtils';
 
 const TITLE_CLASS: Record<string, string> = {
-  sm: 'text-base',
-  md: 'text-xl',
-  lg: 'text-2xl',
-  xl: 'text-3xl',
+  sm:  'text-base',
+  md:  'text-xl',
+  lg:  'text-2xl',
+  xl:  'text-3xl',
+  xxl: 'text-4xl',
+  '3xl': 'text-5xl',
 };
 
 const LogoSlot: React.FC<{
@@ -50,11 +53,11 @@ const InfoBar: React.FC<{ primaryColor: string }> = ({ primaryColor }) => {
   return (
     <div
       className="inline-flex flex-wrap gap-x-4 gap-y-0.5 mt-2 text-sm font-medium text-neutral-700 py-1 px-4 rounded-full border"
-      style={{ backgroundColor: primaryColor + '12', borderColor: primaryColor + '30' }}
+      style={{ backgroundColor: hexOpacity(primaryColor, 18), borderColor: hexOpacity(primaryColor, 48) }}
     >
       {parts.map((p, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <span style={{ color: primaryColor + '50' }}>|</span>}
+          {i > 0 && <span style={{ color: hexOpacity(primaryColor, 80) }}>|</span>}
           <span>{p}</span>
         </React.Fragment>
       ))}

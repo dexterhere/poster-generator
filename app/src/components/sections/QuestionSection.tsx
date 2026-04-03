@@ -1,5 +1,6 @@
 import React from 'react';
 import { type Section, type QuestionContent } from '../../store/usePosterStore';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -13,10 +14,10 @@ const QuestionSection: React.FC<Props> = ({ section, primaryColor }) => {
   const align = s.textAlign ?? 'center';
 
   const questionStyle: React.CSSProperties = {
-    fontSize:   s.fontSize   ? `${s.fontSize}px`        : '20px',
+    fontSize:   s.fontSize   ? `${s.fontSize}px`        : '18px',
     fontWeight: s.fontWeight ?? 'bold',
     fontStyle:  s.fontStyle  ?? 'normal',
-    lineHeight: s.lineHeight ?? 1.3,
+    lineHeight: s.lineHeight ?? 1.4,
     fontFamily: 'var(--font-display)',
     color:      primaryColor,
     textAlign:  align,
@@ -26,7 +27,7 @@ const QuestionSection: React.FC<Props> = ({ section, primaryColor }) => {
     fontSize:   s.fontSize   ? `${Math.max(9, s.fontSize - 4)}px` : '12px',
     fontWeight: 'normal',
     fontStyle:  s.fontStyle  ?? 'normal',
-    lineHeight: s.lineHeight ?? 1.5,
+    lineHeight: s.lineHeight ?? 1.4,
     fontFamily: 'var(--font-body)',
     color:      '#4b5563',
     textAlign:  align,
@@ -36,7 +37,7 @@ const QuestionSection: React.FC<Props> = ({ section, primaryColor }) => {
     <div
       className="flex flex-col justify-center h-full rounded-xl space-y-3"
       style={{
-        backgroundColor: primaryColor + '08',
+        backgroundColor: hexOpacity(primaryColor, 8),
         alignItems: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start',
         padding: '16px',
       }}

@@ -45,6 +45,22 @@
   font-family: var(--font-display, 'Lora', serif);
 }
 
+/* ─── Canvas workspace background (dot grid) ─── */
+.canvas-workspace {
+  background-color: #c8cdd5;
+  background-image: radial-gradient(circle, #9ca3af 1px, transparent 1px);
+  background-size: 24px 24px;
+  /* Center the poster in available space; 'safe' prevents broken scrolling when poster overflows */
+  display: flex;
+  align-items: flex-start;
+  justify-content: safe center;
+}
+
+/* Poster drop shadow */
+#poster-canvas {
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
 /* Print styles — @page size is injected dynamically by ExportPanel to match the selected paper size */
 @media print {
   .print\:hidden {

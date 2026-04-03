@@ -1,5 +1,6 @@
 import React from 'react';
 import { type Section, type TableContent } from '../../store/usePosterStore';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -47,7 +48,7 @@ const TableSection: React.FC<Props> = ({ section, primaryColor }) => {
           </thead>
           <tbody>
             {content.rows.map((row, ri) => (
-              <tr key={ri} style={{ backgroundColor: ri % 2 !== 0 ? primaryColor + '08' : undefined }}>
+              <tr key={ri} style={{ backgroundColor: ri % 2 !== 0 ? hexOpacity(primaryColor, 8) : undefined }}>
                 {row.map((cell, ci) => (
                   <td
                     key={ci}

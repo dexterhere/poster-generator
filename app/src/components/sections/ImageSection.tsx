@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { type Section, type ImageContent } from '../../store/usePosterStore';
 import { usePosterStore } from '../../store/usePosterStore';
 import { Upload } from 'lucide-react';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -38,9 +39,9 @@ const ImageSection: React.FC<Props> = ({ section, primaryColor }) => {
           <button
             onClick={() => fileRef.current?.click()}
             className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
-            style={{ backgroundColor: primaryColor + '05' }}
+            style={{ backgroundColor: hexOpacity(primaryColor, 5) }}
           >
-            <Upload size={20} style={{ color: primaryColor + '80' }} />
+            <Upload size={20} style={{ color: hexOpacity(primaryColor, 128) }} />
             <span className="text-[10px] font-medium">Click to upload image</span>
             <span className="text-[9px] text-neutral-400">SVG, PNG, JPG</span>
           </button>

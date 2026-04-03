@@ -1,5 +1,6 @@
 import React from 'react';
 import { type Section, type FlowContent } from '../../store/usePosterStore';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -16,7 +17,7 @@ const FlowSection: React.FC<Props> = ({ section, primaryColor }) => {
     fontSize:   s.fontSize   ? `${s.fontSize}px`        : '11px',
     fontWeight: s.fontWeight ?? 'bold',
     fontStyle:  s.fontStyle  ?? 'normal',
-    lineHeight: s.lineHeight ?? 1.3,
+    lineHeight: s.lineHeight ?? 1.4,
     fontFamily: 'var(--font-display)',
     textAlign:  s.textAlign  ?? (isVertical ? 'left' : 'center'),
   };
@@ -25,7 +26,7 @@ const FlowSection: React.FC<Props> = ({ section, primaryColor }) => {
     fontSize:   s.fontSize ? `${Math.max(8, s.fontSize - 2)}px` : '10px',
     fontFamily: 'var(--font-body)',
     color:      '#6b7280',
-    lineHeight: s.lineHeight ?? 1.3,
+    lineHeight: s.lineHeight ?? 1.4,
     textAlign:  s.textAlign  ?? (isVertical ? 'left' : 'center'),
   };
 
@@ -36,7 +37,7 @@ const FlowSection: React.FC<Props> = ({ section, primaryColor }) => {
           <div className={`flex ${isVertical ? 'flex-row items-start' : 'flex-col items-center'} gap-2 ${isVertical ? '' : 'flex-1'}`}>
             <div
               className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm z-10"
-              style={{ backgroundColor: step.highlight ? primaryColor : primaryColor + '60' }}
+              style={{ backgroundColor: step.highlight ? primaryColor : hexOpacity(primaryColor, 96) }}
             >
               {i + 1}
             </div>

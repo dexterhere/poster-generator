@@ -1,5 +1,6 @@
 import React from 'react';
 import { type Section, type ListContent } from '../../store/usePosterStore';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -43,7 +44,7 @@ const ListSection: React.FC<Props> = ({ section, primaryColor }) => {
           {item.tag && (
             <span
               className="flex-shrink-0 text-[7px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wide mt-0.5"
-              style={{ backgroundColor: primaryColor + '20', color: primaryColor }}
+              style={{ backgroundColor: hexOpacity(primaryColor, 32), color: primaryColor }}
             >
               {item.tag}
             </span>

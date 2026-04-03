@@ -88,6 +88,8 @@ export interface SectionStyle {
   fontWeight?: 'normal' | 'bold';
   fontStyle?: 'normal' | 'italic';
   lineHeight?: number;                         // multiplier e.g. 1.4
+  containerStyle?: 'default' | 'none' | 'card' | 'outline' | 'accent-top' | 'filled' | 'minimal';
+  hideTitle?: boolean;
 }
 
 export interface Section {
@@ -126,7 +128,7 @@ export interface PosterState {
     showReader: boolean;
     showDepartment: boolean;
     // Title size
-    titleSize: 'sm' | 'md' | 'lg' | 'xl';
+    titleSize: 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | '3xl';
   };
   footer: {
     text: string;

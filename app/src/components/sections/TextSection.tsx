@@ -1,5 +1,6 @@
 import React from 'react';
 import { type Section, type TextContent } from '../../store/usePosterStore';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -16,7 +17,7 @@ const TextSection: React.FC<Props> = ({ section, primaryColor }) => {
     textAlign:  s.textAlign  ?? 'left',
     fontWeight: s.fontWeight ?? 'normal',
     fontStyle:  s.fontStyle  ?? 'normal',
-    lineHeight: s.lineHeight ?? 1.5,
+    lineHeight: s.lineHeight ?? 1.4,
     fontFamily: 'var(--font-body)',
   };
 
@@ -31,7 +32,7 @@ const TextSection: React.FC<Props> = ({ section, primaryColor }) => {
             className="mt-3 p-2.5 rounded-lg border-l-4 italic leading-relaxed"
             style={{
               fontSize:        s.fontSize ? `${Math.max(9, s.fontSize - 1)}px` : '10px',
-              backgroundColor: primaryColor + '12',
+              backgroundColor: hexOpacity(primaryColor, 18),
               borderColor:     primaryColor,
               color:           primaryColor,
               fontFamily:      'var(--font-display)',

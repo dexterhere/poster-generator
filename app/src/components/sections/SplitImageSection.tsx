@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { type Section, type SplitImageContent } from '../../store/usePosterStore';
 import { usePosterStore } from '../../store/usePosterStore';
 import { Upload } from 'lucide-react';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -40,7 +41,7 @@ const SplitImageSection: React.FC<Props> = ({ section, primaryColor }) => {
       <div className={`flex-1 flex flex-col ${borderClass} border-neutral-100 overflow-hidden min-h-0 min-w-0`}>
         <div
           className="text-[9px] font-bold px-2 py-1 text-center"
-          style={{ backgroundColor: primaryColor + '15', color: primaryColor }}
+          style={{ backgroundColor: hexOpacity(primaryColor, 21), color: primaryColor }}
         >
           {label}
         </div>
@@ -52,7 +53,7 @@ const SplitImageSection: React.FC<Props> = ({ section, primaryColor }) => {
               onClick={() => inputRef.current?.click()}
               className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
             >
-              <Upload size={14} style={{ color: primaryColor + '70' }} />
+              <Upload size={14} style={{ color: hexOpacity(primaryColor, 112) }} />
               <span className="text-[8px]">Upload {label}</span>
             </button>
           )}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { type Section, type StatsContent } from '../../store/usePosterStore';
+import { hexOpacity } from '../../utils/colorUtils';
 
 interface Props {
   section: Section;
@@ -19,23 +20,26 @@ const StatsSection: React.FC<Props> = ({ section, primaryColor }) => {
     color:       primaryColor,
   };
 
+  const alignMap: Record<string, string> = { left: 'flex-start', center: 'center', right: 'flex-end' };
+  const justify = alignMap[s.textAlign ?? 'center'] ?? 'center';
+
   const labelStyle: React.CSSProperties = {
     fontSize:   s.fontSize   ? `${Math.max(8, s.fontSize - 2)}px` : '9px',
     fontFamily: 'var(--font-body)',
     color:      '#4b5563',
     fontWeight: '500',
-    lineHeight: 1.2,
+    lineHeight: s.lineHeight ?? 1.4,
     marginTop:  '4px',
     textAlign:  s.textAlign ?? 'center',
   };
 
   return (
-    <div className="flex flex-wrap h-full overflow-hidden p-2 gap-2 items-center justify-center">
+    <div className="flex flex-wrap h-full overflow-hidden p-2 gap-2 items-center" style={{ justifyContent: justify }}>
       {content.stats.map((stat, i) => (
         <div
           key={i}
           className="flex-1 min-w-[60px] flex flex-col items-center justify-center p-2 rounded-lg text-center"
-          style={{ backgroundColor: primaryColor + '10' }}
+          style={{ backgroundColor: hexOpacity(primaryColor, 16) }}
         >
           <span style={valueStyle}>{stat.value}</span>
           <span style={labelStyle}>{stat.label}</span>
