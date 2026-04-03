@@ -13,6 +13,8 @@ type Side = 'left' | 'right';
 
 const SplitImageSection: React.FC<Props> = ({ section, primaryColor }) => {
   const content = section.content as SplitImageContent;
+  const isHorizontal = (content.direction || 'horizontal') === 'horizontal';
+  const fitClass = content.fit === 'cover' ? 'object-cover' : 'object-contain';
   const updateSectionContent = usePosterStore((s) => s.updateSectionContent);
   const leftRef = useRef<HTMLInputElement>(null);
   const rightRef = useRef<HTMLInputElement>(null);
@@ -32,18 +34,19 @@ const SplitImageSection: React.FC<Props> = ({ section, primaryColor }) => {
     const imageUrl = side === 'left' ? content.leftImageUrl : content.rightImageUrl;
     const label = side === 'left' ? content.leftLabel : content.rightLabel;
     const inputRef = side === 'left' ? leftRef : rightRef;
+    const borderClass = isHorizontal ? 'border-r last:border-r-0' : 'border-b last:border-b-0';
 
     return (
-      <div className="flex-1 flex flex-col border-r last:border-r-0 border-neutral-100 overflow-hidden">
+      <div className={`flex-1 flex flex-col ${borderClass} border-neutral-100 overflow-hidden min-h-0 min-w-0`}>
         <div
           className="text-[9px] font-bold px-2 py-1 text-center"
           style={{ backgroundColor: primaryColor + '15', color: primaryColor }}
         >
           {label}
         </div>
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-hidden min-h-0 min-w-0">
           {imageUrl ? (
-            <img src={imageUrl} alt={label} className="w-full h-full object-contain" />
+            <img src={imageUrl} alt={label} className={`w-full h-full ${fitClass}`} />
           ) : (
             <button
               onClick={() => inputRef.current?.click()}
@@ -74,7 +77,7 @@ const SplitImageSection: React.FC<Props> = ({ section, primaryColor }) => {
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className={`flex h-full overflow-hidden ${isHorizontal ? 'flex-row' : 'flex-col'}`}>
       {renderSide('left')}
       {renderSide('right')}
     </div>

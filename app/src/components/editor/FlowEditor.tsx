@@ -31,6 +31,33 @@ const FlowEditor: React.FC<Props> = ({ section, onUpdate }) => {
 
   return (
     <div className="space-y-3">
+      {/* Direction Toggle */}
+      <div className="flex items-center gap-4 bg-neutral-50 p-2 rounded-md border border-neutral-100 mb-2">
+        <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Flow Layout</label>
+        <div className="flex gap-3 text-neutral-700">
+          <label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium hover:text-neutral-900">
+            <input 
+              type="radio" 
+              name={`flow-dir-horizontal`} 
+              checked={content.direction !== 'vertical'} 
+              onChange={() => onUpdate({ direction: 'horizontal' })}
+              className="accent-indigo-600"
+            />
+            Horizontal
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium hover:text-neutral-900">
+            <input 
+              type="radio" 
+              name={`flow-dir-vertical`} 
+              checked={content.direction === 'vertical'} 
+              onChange={() => onUpdate({ direction: 'vertical' })}
+              className="accent-indigo-600"
+            />
+            Vertical
+          </label>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <label className="text-[11px] font-semibold text-neutral-500">Steps ({content.steps.length}/8)</label>
         <button onClick={addStep} className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1">

@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 
-export type SectionType = 'text' | 'table' | 'flow' | 'split-image' | 'image' | 'list' | 'stats';
+export type SectionType = 'text' | 'table' | 'flow' | 'split-image' | 'image' | 'list' | 'stats' | 'question';
 
-export interface GridPosition {
-  row: number;
-  col: number;
-  rowSpan: number;
-  colSpan: number;
+export interface CanvasPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zIndex: number;
 }
 
 // Typed content per section
@@ -27,6 +28,7 @@ export interface FlowStep {
 }
 
 export interface FlowContent {
+  direction?: 'horizontal' | 'vertical';
   steps: FlowStep[];
 }
 
@@ -41,6 +43,8 @@ export interface SplitImageContent {
   leftLabel: string;
   rightImageUrl: string | null;
   rightLabel: string;
+  direction?: 'horizontal' | 'vertical';
+  fit?: 'contain' | 'cover';
 }
 
 export interface ListItem {
@@ -62,6 +66,11 @@ export interface StatsContent {
   stats: StatItem[];
 }
 
+export interface QuestionContent {
+  questionText: string;
+  subtext: string;
+}
+
 export type SectionContent =
   | TextContent
   | TableContent
@@ -69,41 +78,71 @@ export type SectionContent =
   | ImageContent
   | SplitImageContent
   | ListContent
-  | StatsContent;
+  | StatsContent
+  | QuestionContent;
+
+export interface SectionStyle {
+  padding?: number;
+  fontSize?: number;                           // px — base body font size (8–28)
+  textAlign?: 'left' | 'center' | 'right';
+  fontWeight?: 'normal' | 'bold';
+  fontStyle?: 'normal' | 'italic';
+  lineHeight?: number;                         // multiplier e.g. 1.4
+}
 
 export interface Section {
   id: string;
-  gridPosition: GridPosition;
+  position: CanvasPosition;
   type: SectionType;
   title: string;
   content: SectionContent;
+  style?: SectionStyle;
 }
+
+export type HeaderLayout = 'academic' | 'minimal' | 'banner' | 'centered';
 
 export interface PosterState {
   id: string;
   selectedSectionId: string | null;
   header: {
+    // Layout preset
+    headerLayout: HeaderLayout;
+    // Logos
     universityLogoUrl: string | null;
     collegeLogoUrl: string | null;
+    // Core fields
     projectTitle: string;
     studentName: string;
     studentId: string;
     supervisorName: string;
     readerName: string;
-    academicQuestion: string;
+    // Extra fields
+    department: string;
+    institution: string;
+    year: string;
+    // Visibility toggles
+    showStudentInfo: boolean;
+    showSupervisor: boolean;
+    showReader: boolean;
+    showDepartment: boolean;
+    // Title size
+    titleSize: 'sm' | 'md' | 'lg' | 'xl';
   };
   footer: {
     text: string;
   };
-  layout: {
-    orientation: 'landscape' | 'portrait';
-    rows: number;
-    columns: number;
-  };
+
   theme: {
     primaryColor: string;
     fontPairing: string;
     borderStyle: 'thin' | 'top-accent' | 'shadow' | 'filled-header';
+    footerEnabled: boolean;
+    rulerEnabled: boolean;
+  };
+  layout: {
+    width: number;
+    height: number;
+    name: string;
   };
   sections: Section[];
 
@@ -112,11 +151,12 @@ export interface PosterState {
   updateHeader: (header: Partial<PosterState['header']>) => void;
   updateFooter: (footer: Partial<PosterState['footer']>) => void;
   updateTheme: (theme: Partial<PosterState['theme']>) => void;
+  updateLayout: (layout: Partial<PosterState['layout']>) => void;
   updateSection: (id: string, section: Partial<Section>) => void;
   updateSectionContent: (id: string, content: Partial<SectionContent>) => void;
   addSection: (section: Section) => void;
   deleteSection: (id: string) => void;
-  updateLayout: (layout: Partial<PosterState['layout']>) => void;
+
 }
 
 const DEFAULT_TEXT_CONTENT: TextContent = {
@@ -135,6 +175,7 @@ export function defaultContentForType(type: SectionType): SectionContent {
       };
     case 'flow':
       return {
+        direction: 'horizontal',
         steps: [
           { name: 'Step One', description: 'Describe this step', highlight: false },
           { name: 'Step Two', description: 'Describe this step', highlight: false },
@@ -144,135 +185,56 @@ export function defaultContentForType(type: SectionType): SectionContent {
     case 'image':
       return { imageUrl: null, caption: '', fit: 'contain' };
     case 'split-image':
-      return { leftImageUrl: null, leftLabel: 'Initial Plan', rightImageUrl: null, rightLabel: 'Final Progress' };
+      return { leftImageUrl: null, leftLabel: 'Initial Plan', rightImageUrl: null, rightLabel: 'Final Progress', direction: 'horizontal', fit: 'contain' };
     case 'list':
       return { style: 'bullet', items: [{ text: 'First item' }, { text: 'Second item' }] };
     case 'stats':
       return { stats: [{ value: '95%', label: 'Test Coverage' }, { value: '4', label: 'Sprints' }] };
+    case 'question':
+      return { questionText: 'What is the main research question of this study?', subtext: 'Detailed hypothesis or sub-question goes here.' };
     default:
       return DEFAULT_TEXT_CONTENT;
   }
 }
 
-const initialSections: Section[] = [
-  {
-    id: 'section-1',
-    gridPosition: { row: 0, col: 0, rowSpan: 1, colSpan: 1 },
-    type: 'text',
-    title: 'Introduction',
-    content: { body: 'CampusSync is a gamified university management platform...', highlightBox: 'Key innovation: digital points redeemable at the campus canteen.' },
-  },
-  {
-    id: 'section-2',
-    gridPosition: { row: 0, col: 1, rowSpan: 1, colSpan: 1 },
-    type: 'table',
-    title: 'Literature Review',
-    content: {
-      columns: ['Author & Year', 'Study Focus', 'Key Finding', 'Relevance'],
-      rows: [
-        ['Meng et al. (2024)', 'Gamification in online learning', '+15% participation', 'Confirms points system works'],
-        ['Smith et al. (2023)', 'Student engagement strategies', '20% grade improvement', 'Supports reward mechanics'],
-      ],
-    },
-  },
-  {
-    id: 'section-3',
-    gridPosition: { row: 0, col: 2, rowSpan: 1, colSpan: 1 },
-    type: 'flow',
-    title: 'App Process Flow',
-    content: {
-      steps: [
-        { name: 'Student completes a task', description: 'Submits assignment or attends class', highlight: false },
-        { name: 'Points are awarded', description: 'Added to student account automatically', highlight: false },
-        { name: 'Reward selected', description: 'Student picks from canteen catalog', highlight: true },
-        { name: 'QR code generated', description: 'Encrypted one-time use code shown', highlight: true },
-      ],
-    },
-  },
-  {
-    id: 'section-4',
-    gridPosition: { row: 1, col: 0, rowSpan: 1, colSpan: 1 },
-    type: 'list',
-    title: 'Aims & Objectives',
-    content: {
-      style: 'numbered',
-      items: [
-        { text: 'Design a gamified points economy for university tasks', tag: 'AIM' },
-        { text: 'Implement QR-code based reward redemption at the canteen', tag: 'OBJ' },
-        { text: 'Build an admin dashboard for staff to manage the system', tag: 'OBJ' },
-        { text: 'Ensure the system scales to 500+ concurrent students', tag: 'OBJ' },
-      ],
-    },
-  },
-  {
-    id: 'section-5',
-    gridPosition: { row: 1, col: 1, rowSpan: 1, colSpan: 1 },
-    type: 'image',
-    title: 'System Diagram',
-    content: { imageUrl: null, caption: 'High-level system architecture diagram', fit: 'contain' },
-  },
-  {
-    id: 'section-6',
-    gridPosition: { row: 1, col: 2, rowSpan: 1, colSpan: 1 },
-    type: 'stats',
-    title: 'Key Metrics',
-    content: {
-      stats: [
-        { value: '95%', label: 'Test Coverage' },
-        { value: '4', label: 'Agile Sprints' },
-        { value: '500+', label: 'Students' },
-        { value: 'A*', label: 'Grade Target' },
-      ],
-    },
-  },
-  {
-    id: 'section-7',
-    gridPosition: { row: 2, col: 0, rowSpan: 1, colSpan: 1 },
-    type: 'split-image',
-    title: 'Project Process — Gantt Chart',
-    content: { leftImageUrl: null, leftLabel: 'Initial Plan', rightImageUrl: null, rightLabel: 'Final Progress' },
-  },
-  {
-    id: 'section-8',
-    gridPosition: { row: 2, col: 1, rowSpan: 1, colSpan: 1 },
-    type: 'text',
-    title: 'Evaluation & Reflection',
-    content: { body: 'The project successfully met all primary objectives. The gamification system proved effective in increasing student engagement scores by an average of 18% during the testing period.', highlightBox: 'Key challenge: Balancing reward value without inflating the points economy.' },
-  },
-  {
-    id: 'section-9',
-    gridPosition: { row: 2, col: 2, rowSpan: 1, colSpan: 1 },
-    type: 'text',
-    title: 'Conclusion & Future Scope',
-    content: { body: 'CampusSync demonstrates that gamification is an effective tool for improving student engagement in university environments. Future work will explore direct API integration with university timetabling systems and expansion to multiple institutions.', highlightBox: '' },
-  },
-];
+const initialSections: Section[] = [];
 
 export const usePosterStore = create<PosterState>((set) => ({
   id: 'unique-poster-id',
   selectedSectionId: null,
   header: {
+    headerLayout: 'academic' as HeaderLayout,
     universityLogoUrl: null,
     collegeLogoUrl: null,
-    projectTitle: 'CampusSync: University Management & Gamification System',
-    studentName: 'Prince Bhagat',
-    studentId: '2406779',
-    supervisorName: 'Mr. Bhanu Aryal',
-    readerName: 'Mr. Subash Bista',
-    academicQuestion: 'How can gamification improve student engagement in higher education?',
+    projectTitle: 'Your Project Title',
+    studentName: 'Your Full Name',
+    studentId: 'Student ID',
+    supervisorName: 'Supervisor Name',
+    readerName: 'Second Reader Name',
+    department: '',
+    institution: '',
+    year: new Date().getFullYear().toString(),
+    showStudentInfo: true,
+    showSupervisor: true,
+    showReader: true,
+    showDepartment: false,
+    titleSize: 'md' as const,
   },
   footer: {
-    text: 'Prince Bhagat | 2406779 | Herald College Kathmandu | 2025–2026',
+    text: 'Your Name | Student ID | Your Institution | Year',
   },
-  layout: {
-    orientation: 'landscape',
-    rows: 3,
-    columns: 3,
-  },
+
   theme: {
     primaryColor: '#0D7377',
     fontPairing: 'classic-academic',
     borderStyle: 'filled-header',
+    footerEnabled: false,
+    rulerEnabled: true,
+  },
+  layout: {
+    width: 841,  // A1 Landscape — 1px = 1mm
+    height: 594,
+    name: 'A1 Landscape',
   },
   sections: initialSections,
 
@@ -280,6 +242,7 @@ export const usePosterStore = create<PosterState>((set) => ({
   updateHeader: (header) => set((state) => ({ header: { ...state.header, ...header } })),
   updateFooter: (footer) => set((state) => ({ footer: { ...state.footer, ...footer } })),
   updateTheme: (theme) => set((state) => ({ theme: { ...state.theme, ...theme } })),
+  updateLayout: (layout) => set((state) => ({ layout: { ...state.layout, ...layout } })),
   updateSection: (id, newSection) =>
     set((state) => ({
       sections: state.sections.map((s) => (s.id === id ? { ...s, ...newSection } : s)),
@@ -296,5 +259,5 @@ export const usePosterStore = create<PosterState>((set) => ({
       sections: state.sections.filter((s) => s.id !== id),
       selectedSectionId: state.selectedSectionId === id ? null : state.selectedSectionId,
     })),
-  updateLayout: (layout) => set((state) => ({ layout: { ...state.layout, ...layout } })),
+
 }));

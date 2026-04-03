@@ -7,6 +7,7 @@ import ImageSection from './ImageSection';
 import SplitImageSection from './SplitImageSection';
 import ListSection from './ListSection';
 import StatsSection from './StatsSection';
+import QuestionSection from './QuestionSection';
 
 interface Props {
   section: Section;
@@ -24,6 +25,7 @@ const SectionRenderer: React.FC<Props> = ({ section, primaryColor, borderStyle }
     case 'split-image':return <SplitImageSection {...props} />;
     case 'list':       return <ListSection {...props} />;
     case 'stats':      return <StatsSection {...props} />;
+    case 'question':   return <QuestionSection {...props} />;
     default:           return <div className="p-4 text-neutral-400 italic">Unknown section type</div>;
   }
 };
