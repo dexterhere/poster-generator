@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ZoomIn, ZoomOut, Maximize, Minimize, Download, Scan, Type, Layout, Palette, FileDown } from 'lucide-react';
+import { ChevronLeft, ZoomIn, ZoomOut, Maximize, Minimize, Download, Scan, Type, Layout, Palette, FileDown, Sparkles } from 'lucide-react';
+import AIGuideModal from './AIGuideModal';
 
 type PanelId = 'header' | 'sections' | 'theme' | 'export';
 
@@ -35,6 +36,7 @@ const TopBar: React.FC<TopBarProps> = ({
   onPanelToggle,
 }) => {
   const zoomPct = Math.round(currentScale * 100);
+  const [showAIGuide, setShowAIGuide] = useState(false);
 
   const handleZoomIn = () => {
     const current = zoomLevel === 'fit' ? currentScale : zoomLevel;
@@ -151,6 +153,15 @@ const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         <button
+          onClick={() => setShowAIGuide(true)}
+          className="flex items-center gap-1.5 px-3 h-8 bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white text-xs font-semibold rounded-lg transition-all whitespace-nowrap shadow-sm"
+          title="AI Guide — auto-generate your poster with AI"
+        >
+          <Sparkles size={13} />
+          <span className="hidden sm:inline">The AI God</span>
+        </button>
+
+        <button
           onClick={onExportClick}
           className="flex items-center gap-1.5 px-3 h-8 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
           title="Export / Print poster"
@@ -159,6 +170,8 @@ const TopBar: React.FC<TopBarProps> = ({
           <span className="hidden sm:inline">Export PDF</span>
         </button>
       </div>
+
+      {showAIGuide && <AIGuideModal onClose={() => setShowAIGuide(false)} />}
     </div>
   );
 };

@@ -9,14 +9,55 @@ const LAYOUTS: { id: HeaderLayout; label: string; description: string }[] = [
   { id: 'minimal',   label: 'Minimal',   description: 'Title only, no logos' },
 ];
 
-const TITLE_SIZES = [
-  { value: 'sm',  label: 'S'   },
-  { value: 'md',  label: 'M'   },
-  { value: 'lg',  label: 'L'   },
-  { value: 'xl',  label: 'XL'  },
-  { value: 'xxl', label: 'XXL' },
-  { value: '3xl', label: '3XL' },
-] as const;
+type InfoLayout = 'inline' | 'stacked' | 'two-row' | 'grid';
+
+const INFO_LAYOUTS: { id: InfoLayout; label: string; description: string; preview: React.ReactNode }[] = [
+  {
+    id: 'inline',
+    label: 'Inline',
+    description: 'All fields in one row',
+    preview: (
+      <div className="text-[8px] leading-tight text-center truncate opacity-70">
+        Name · Supervisor · Reader
+      </div>
+    ),
+  },
+  {
+    id: 'stacked',
+    label: 'Stacked',
+    description: 'Each field on its own row',
+    preview: (
+      <div className="text-[7px] leading-snug opacity-70 space-y-px">
+        <div className="flex gap-1"><span className="font-bold">STUDENT:</span><span>Name (ID)</span></div>
+        <div className="flex gap-1"><span className="font-bold">SUPERVISOR:</span><span>Name</span></div>
+        <div className="flex gap-1"><span className="font-bold">READER:</span><span>Name</span></div>
+      </div>
+    ),
+  },
+  {
+    id: 'two-row',
+    label: '2-Row',
+    description: 'Name on top, others below',
+    preview: (
+      <div className="text-[7px] leading-snug opacity-70 text-center space-y-0.5">
+        <div className="font-semibold">Name (Student ID)</div>
+        <div className="text-[6px]">Supervisor · Reader</div>
+      </div>
+    ),
+  },
+  {
+    id: 'grid',
+    label: 'Grid',
+    description: '2-column label / value',
+    preview: (
+      <div className="text-[7px] leading-snug opacity-70 grid gap-x-2" style={{ gridTemplateColumns: 'auto 1fr' }}>
+        <span className="font-bold">STUDENT</span><span>Name</span>
+        <span className="font-bold">SUPERVISOR</span><span>Name</span>
+        <span className="font-bold">READER</span><span>Name</span>
+      </div>
+    ),
+  },
+];
 
 const HeaderPanel: React.FC = () => {
   const { header, updateHeader } = usePosterStore();
@@ -52,6 +93,11 @@ const HeaderPanel: React.FC = () => {
     </button>
   );
 
+  const titleFontSize  = header.titleFontSize  ?? 32;
+  const headerPadding  = header.headerPadding  ?? 12;
+  const infoFontSize   = header.infoFontSize   ?? 12;
+  const infoLayout     = header.infoLayout     ?? 'inline';
+
   return (
     <div className="space-y-5 p-4">
 
@@ -77,24 +123,74 @@ const HeaderPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Title size */}
+      {/* Header sizing */}
       <div>
-        <label className={labelClass}>Title Size</label>
-        <div className="grid grid-cols-3 gap-1">
-          {TITLE_SIZES.map((s) => (
+        <label className={labelClass}>Header Sizing</label>
+        <div className="space-y-2">
+          {/* Title font size */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-neutral-400 uppercase w-16 shrink-0">Title</span>
+            <input
+              type="range" min="16" max="80" step="1"
+              value={titleFontSize}
+              onChange={(e) => updateHeader({ titleFontSize: parseInt(e.target.value) })}
+              className="flex-1 accent-indigo-600 h-1.5"
+            />
+            <span className="text-xs text-neutral-700 font-semibold w-10 text-right tabular-nums shrink-0">
+              {titleFontSize}px
+            </span>
+          </div>
+          {/* Header vertical padding */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-neutral-400 uppercase w-16 shrink-0">Height</span>
+            <input
+              type="range" min="4" max="48" step="2"
+              value={headerPadding}
+              onChange={(e) => updateHeader({ headerPadding: parseInt(e.target.value) })}
+              className="flex-1 accent-indigo-600 h-1.5"
+            />
+            <span className="text-xs text-neutral-700 font-semibold w-10 text-right tabular-nums shrink-0">
+              {headerPadding}px
+            </span>
+          </div>
+          {/* Info text size */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-neutral-400 uppercase w-16 shrink-0">Info text</span>
+            <input
+              type="range" min="8" max="18" step="1"
+              value={infoFontSize}
+              onChange={(e) => updateHeader({ infoFontSize: parseInt(e.target.value) })}
+              className="flex-1 accent-indigo-600 h-1.5"
+            />
+            <span className="text-xs text-neutral-700 font-semibold w-10 text-right tabular-nums shrink-0">
+              {infoFontSize}px
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Info layout templates */}
+      <div>
+        <label className={labelClass}>Info Bar Layout</label>
+        <div className="grid grid-cols-2 gap-2">
+          {INFO_LAYOUTS.map((l) => (
             <button
-              key={s.value}
-              onClick={() => updateHeader({ titleSize: s.value })}
-              className={`py-1.5 rounded-md text-sm font-bold transition-all border ${
-                header.titleSize === s.value
-                  ? 'border-indigo-500 bg-indigo-500 text-white'
-                  : 'border-neutral-200 text-neutral-600 hover:border-neutral-400'
+              key={l.id}
+              onClick={() => updateHeader({ infoLayout: l.id })}
+              className={`flex flex-col items-start px-2.5 py-2 rounded-lg border-2 text-left transition-all min-h-[56px] ${
+                infoLayout === l.id
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-neutral-200 hover:border-neutral-300'
               }`}
             >
-              {s.label}
+              <span className="text-[10px] font-bold text-neutral-700 mb-1">{l.label}</span>
+              {l.preview}
             </button>
           ))}
         </div>
+        <p className="text-[9px] text-neutral-400 mt-1.5 leading-snug">
+          {INFO_LAYOUTS.find((l) => l.id === infoLayout)?.description}
+        </p>
       </div>
 
       {/* Logo uploads — hidden for minimal layout */}

@@ -127,8 +127,14 @@ export interface PosterState {
     showSupervisor: boolean;
     showReader: boolean;
     showDepartment: boolean;
-    // Title size
-    titleSize: 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | '3xl';
+    // Title font size in px (replaces preset string)
+    titleFontSize: number;
+    // Info-bar layout template
+    infoLayout: 'inline' | 'stacked' | 'two-row' | 'grid';
+    // Header vertical padding in px
+    headerPadding: number;
+    // Info-bar text size in px
+    infoFontSize: number;
   };
   footer: {
     text: string;
@@ -220,7 +226,10 @@ export const usePosterStore = create<PosterState>((set) => ({
     showSupervisor: true,
     showReader: true,
     showDepartment: false,
-    titleSize: 'md' as const,
+    titleFontSize: 32,
+    infoLayout: 'inline' as const,
+    headerPadding: 12,
+    infoFontSize: 12,
   },
   footer: {
     text: 'Your Name | Student ID | Your Institution | Year',
