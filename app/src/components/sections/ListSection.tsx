@@ -21,11 +21,22 @@ const ListSection: React.FC<Props> = ({ section, primaryColor }) => {
     color:      '#374151',
   };
 
+  const introStyle: React.CSSProperties = {
+    ...textStyle,
+    marginBottom: '8px',
+    fontStyle: 'italic',
+    color: '#4b5563',
+  };
+
   return (
     <div
-      className="flex flex-col h-full overflow-auto gap-1.5"
+      className="flex flex-col h-full overflow-auto"
       style={{ textAlign: s.textAlign ?? 'left' }}
     >
+      {content.intro && (
+        <p style={introStyle}>{content.intro}</p>
+      )}
+      <div className="flex flex-col gap-1.5">
       {content.items.map((item, i) => (
         <div key={i} className="flex items-start gap-2">
           {content.style === 'numbered' ? (
@@ -52,6 +63,7 @@ const ListSection: React.FC<Props> = ({ section, primaryColor }) => {
           <p style={textStyle}>{item.text}</p>
         </div>
       ))}
+      </div>
     </div>
   );
 };

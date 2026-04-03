@@ -63,21 +63,147 @@ const ExportPanel: React.FC = () => {
 
   const handleDownloadTemplate = () => {
     const contentTemplate = {
+      _instructions: [
+        "This is the schema template for the Academic Poster Generator.",
+        "Replace all placeholder values with real content from your project.",
+        "Do NOT change 'type' field values — the app uses them to render each section correctly.",
+        "Do NOT change 'id' field values.",
+        "Remove this '_instructions' key before uploading.",
+        "Output raw JSON only — no markdown code fences, no extra text."
+      ],
       header: {
-        universityLogoUrl: 'https://example.com/uni-logo.png',
-        collegeLogoUrl: 'https://example.com/college-logo.png',
-        projectTitle: 'Your Awesome Project Title',
-        studentName: 'Your Full Name',
-        studentId: '1234567',
-        supervisorName: 'Dr. Supervisor',
-        readerName: 'Prof. Reader',
+        projectTitle: "Your Full Project Title",
+        studentName: "Your Full Name",
+        studentId: "1234567",
+        supervisorName: "Dr. Supervisor Name",
+        readerName: "Prof. Reader Name"
       },
-      sections: state.sections.map((s) => ({
-        id: s.id,
-        title: s.title,
-        type: s.type,
-        content: s.content,
-      })),
+      sections: [
+        {
+          id: "section-1",
+          title: "Introduction",
+          type: "text",
+          _schema: "type=text: use 'body' for the main paragraph and 'highlightBox' for a single key takeaway sentence.",
+          content: {
+            body: "Write 3–4 sentences describing the problem, motivation, and purpose of your project. Keep it accessible to a general academic audience.",
+            highlightBox: "One sentence stating the core contribution or novelty of your work."
+          }
+        },
+        {
+          id: "section-2",
+          title: "Research Question",
+          type: "question",
+          _schema: "type=question: 'questionText' is the central research question; 'subtext' is the hypothesis or expected finding.",
+          content: {
+            questionText: "How can [technology/approach] be used to [achieve goal] in the context of [domain]?",
+            subtext: "This study hypothesises that [expected outcome] will result from [approach], as evidenced by [indicator]."
+          }
+        },
+        {
+          id: "section-3",
+          title: "Aims & Objectives",
+          type: "list",
+          _schema: "type=list: 'intro' is an optional paragraph above the list (use for the project Aim). 'style' is 'bullet' or 'numbered'. Each item has 'text' (required) and optional 'tag' (short label like 'O1').",
+          content: {
+            style: "numbered",
+            intro: "The aim of this project is to [overall aim in one sentence].",
+            items: [
+              { tag: "O1", text: "Objective one — start with a verb, e.g. Develop a..." },
+              { tag: "O2", text: "Objective two — start with a verb, e.g. Evaluate the..." },
+              { tag: "O3", text: "Objective three — start with a verb, e.g. Implement a..." },
+              { tag: "O4", text: "Objective four — start with a verb, e.g. Test and validate..." }
+            ]
+          }
+        },
+        {
+          id: "section-4",
+          title: "Literature Review",
+          type: "table",
+          _schema: "type=table: 'columns' is a string array of header names; 'rows' is a 2D array where each inner array matches the columns in order. Only use sources from the attached document — do not fabricate.",
+          content: {
+            columns: ["Author & Year", "Focus", "Key Finding", "Relevance to Project"],
+            rows: [
+              ["Smith et al. (2021)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
+              ["Jones (2020)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
+              ["Patel & Lee (2022)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
+              ["Brown (2019)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
+              ["Ahmed et al. (2023)", "Topic of paper", "Main finding from the paper", "How it relates to your project"]
+            ]
+          }
+        },
+        {
+          id: "section-5",
+          title: "Methodology",
+          type: "flow",
+          _schema: "type=flow: 'direction' is 'horizontal' or 'vertical'. Each step has 'name' (short label), 'description' (1 sentence), and 'highlight' (true for the most important/novel step).",
+          content: {
+            direction: "horizontal",
+            steps: [
+              { name: "Requirements", description: "Gathered and analysed user and system requirements.", highlight: false },
+              { name: "Design", description: "Designed system architecture and data models.", highlight: false },
+              { name: "Implementation", description: "Built the core system using [technology/framework].", highlight: true },
+              { name: "Testing", description: "Conducted unit, integration, and user acceptance testing.", highlight: false },
+              { name: "Evaluation", description: "Evaluated outcomes against the original objectives.", highlight: false }
+            ]
+          }
+        },
+        {
+          id: "section-6",
+          title: "Key Results",
+          type: "stats",
+          _schema: "type=stats: 'stats' is an array of { value, label } pairs. 'value' should be short (number, %, grade). 'label' should be under 4 words. Only use real values from your document.",
+          content: {
+            stats: [
+              { value: "95%", label: "Test Accuracy" },
+              { value: "4", label: "Sprints Completed" },
+              { value: "12", label: "User Testers" },
+              { value: "A", label: "System Usability Score" }
+            ]
+          }
+        },
+        {
+          id: "section-7",
+          title: "System Diagram",
+          type: "image",
+          _schema: "type=image: set 'imageUrl' to null — the user will upload the image in the poster builder. Write a descriptive 'caption'. 'fit' is 'contain' or 'cover'.",
+          content: {
+            imageUrl: null,
+            caption: "Figure 1: [Describe what diagram this should be, e.g. System architecture diagram showing the three-tier structure of the application.]",
+            fit: "contain"
+          }
+        },
+        {
+          id: "section-8",
+          title: "Evaluation & Reflection",
+          type: "list",
+          _schema: "type=list: Use 'intro' for an overall summary sentence. Each item is one honest, analytical bullet point about what worked, what did not, or what was learned.",
+          content: {
+            style: "bullet",
+            intro: "Overall, the project successfully achieved its primary aim, with the following key reflections.",
+            items: [
+              { text: "What worked well — e.g. The modular architecture allowed rapid feature iteration." },
+              { text: "What could be improved — e.g. More time should have been allocated to user testing." },
+              { text: "What was learned — e.g. Working with [technology] provided insight into [concept]." },
+              { text: "An honest limitation — e.g. The dataset used was small and may not generalise." }
+            ]
+          }
+        },
+        {
+          id: "section-9",
+          title: "Future Scope",
+          type: "list",
+          _schema: "type=list: Each item is a specific, actionable future direction. Avoid vague phrases like 'improve performance' — be concrete.",
+          content: {
+            style: "numbered",
+            intro: "",
+            items: [
+              { text: "Specific future direction 1 — e.g. Extend the system to support [feature] using [technology]." },
+              { text: "Specific future direction 2 — e.g. Conduct a large-scale user study with [N] participants." },
+              { text: "Specific future direction 3 — e.g. Integrate with [external system] to enable [capability]." }
+            ]
+          }
+        }
+      ]
     };
     const blob = new Blob([JSON.stringify(contentTemplate, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -95,21 +221,52 @@ const ExportPanel: React.FC = () => {
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string);
+        // Strip template annotation keys
+        delete data._instructions;
         if (data.header) state.updateHeader(data.header);
         if (data.footer) state.updateFooter(data.footer);
-        if (data.theme) state.updateTheme(data.theme);
+        if (data.theme)  state.updateTheme(data.theme);
         if (data.layout) state.updateLayout(data.layout);
-        if (data.sections) {
-          data.sections.forEach((s: any) => {
+
+        if (Array.isArray(data.sections) && data.sections.length > 0) {
+          // Clear existing sections first so loaded sections don't stack on old ones
+          state.sections.forEach((s) => state.deleteSection(s.id));
+
+          // Auto-layout constants — cascade sections in a grid if no position provided
+          const COLS       = 2;
+          const CELL_W     = 380;
+          const CELL_H     = 220;
+          const GAP        = 16;
+          const START_X    = 20;
+          const START_Y    = 110; // below poster header
+
+          data.sections.forEach((s: any, idx: number) => {
+            // Strip template-only annotation fields before adding to canvas
+            delete s._schema;
+
             if (!s.style) s.style = {};
-            s.style.padding = 4;
-            if (!state.sections.find((existing) => existing.id === s.id)) {
-              state.addSection(s);
-            } else {
-              state.updateSection(s.id, s);
+            s.style.padding = s.style.padding ?? 12;
+
+            // Assign a staggered grid position if the section has no position data
+            if (!s.position || (s.position.x === 0 && s.position.y === 0 && !s.position.width)) {
+              const col = idx % COLS;
+              const row = Math.floor(idx / COLS);
+              s.position = {
+                x: START_X + col * (CELL_W + GAP),
+                y: START_Y + row * (CELL_H + GAP),
+                width:  CELL_W,
+                height: CELL_H,
+                zIndex: idx + 1,
+              };
             }
+
+            // Ensure id is unique
+            if (!s.id) s.id = `section-${Date.now()}-${idx}`;
+
+            state.addSection(s);
           });
         }
+
         alert('Draft loaded successfully!');
       } catch {
         alert('Invalid draft file. Please use a valid JSON draft.');

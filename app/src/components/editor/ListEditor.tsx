@@ -28,6 +28,20 @@ const ListEditor: React.FC<Props> = ({ section, onUpdate }) => {
 
   return (
     <div className="space-y-3">
+      {/* Intro paragraph */}
+      <div>
+        <label className="block text-[11px] font-semibold text-neutral-500 mb-1">
+          Intro Paragraph <span className="font-normal text-neutral-400">(optional — appears above list)</span>
+        </label>
+        <textarea
+          rows={3}
+          value={content.intro ?? ''}
+          onChange={(e) => onUpdate({ intro: e.target.value || undefined })}
+          className="w-full border border-neutral-200 rounded px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all resize-none"
+          placeholder="e.g. The aim of this project is to..."
+        />
+      </div>
+
       <div>
         <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">List Style</label>
         <div className="flex gap-3">

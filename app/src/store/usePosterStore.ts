@@ -55,6 +55,7 @@ export interface ListItem {
 export interface ListContent {
   style: 'bullet' | 'numbered';
   items: ListItem[];
+  intro?: string;   // optional paragraph rendered above the list (e.g. project aim)
 }
 
 export interface StatItem {
@@ -195,7 +196,7 @@ export function defaultContentForType(type: SectionType): SectionContent {
     case 'split-image':
       return { leftImageUrl: null, leftLabel: 'Initial Plan', rightImageUrl: null, rightLabel: 'Final Progress', direction: 'horizontal', fit: 'contain' };
     case 'list':
-      return { style: 'bullet', items: [{ text: 'First item' }, { text: 'Second item' }] };
+      return { style: 'bullet', intro: '', items: [{ text: 'First objective' }, { text: 'Second objective' }] };
     case 'stats':
       return { stats: [{ value: '95%', label: 'Test Coverage' }, { value: '4', label: 'Sprints' }] };
     case 'question':

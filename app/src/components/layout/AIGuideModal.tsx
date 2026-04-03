@@ -5,35 +5,114 @@ interface AIGuideModalProps {
   onClose: () => void;
 }
 
-const PROMPT = `I have attached my Final Year Project document(s) — this may include my Proposal, Literature Review, or Artifact. These contain all the core details of my project.
+const PROMPT = `I have attached my Final Year Project document(s). These may include a Proposal, Literature Review, Technical Report, or Artifact. They contain all the core details of my project.
 
-Please generate a complete academic poster JSON file based on the template format I have provided. The output must be valid JSON that exactly follows the schema from the downloaded template.
+Please generate a complete academic poster JSON file. The output must be raw, valid JSON with NO explanation text before or after — just the JSON object.
 
-Generate exactly 9 sections in this order:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+JSON STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1. Introduction — Brief overview of the project, problem statement, and motivation. Keep it concise and accessible to a general academic audience.
+The top-level JSON must have this exact shape:
+{
+  "header": {
+    "projectTitle": "Your Full Project Title",
+    "studentName": "Your Full Name",
+    "studentId": "Your Student ID",
+    "supervisorName": "Dr. Supervisor Name",
+    "readerName": "Prof. Reader Name"
+  },
+  "sections": [ ... ]
+}
 
-2. Literature Review — Summarise only the top 5 most relevant sources from my document. For each, include the key finding and its direct relevance to my project. Use a table or list format.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION SCHEMAS — use exactly these field names
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-3. Aims & Objectives — Present the project aims and objectives in short, punchy bullet points. Each objective should be one clear sentence — avoid padding.
+Each section object must have: "id", "title", "type", and "content".
 
-4. Methodology / Testing — Describe the approach taken, tools used, and how the project was tested or evaluated. Include any key results or metrics where available.
+TYPE: "text"
+Content schema:
+{ "body": "Full paragraph text here.", "highlightBox": "Optional key takeaway in 1 sentence." }
 
-5. Diagram / Visual — Choose the most meaningful diagram to include (system architecture, data flow, UML, process flow, etc.). Describe what it shows — the actual image will be uploaded separately.
+TYPE: "list"
+Content schema (use this for Aims & Objectives — put the Aim as intro, Objectives as items):
+{ "style": "bullet", "intro": "The aim of this project is to...", "items": [ { "text": "Objective one." }, { "text": "Objective two." } ] }
+For a numbered list use: "style": "numbered"
+The "tag" field on each item is optional — use it for short labels like "RQ1" or "O1".
 
-6. Research Question — State the central academic research question this project addresses, followed by a concise hypothesis or expected finding.
+TYPE: "table"
+Content schema:
+{ "columns": ["Column A", "Column B", "Column C"], "rows": [ ["Row 1A", "Row 1B", "Row 1C"], ["Row 2A", "Row 2B", "Row 2C"] ] }
 
-7. Evaluation & Reflection — Reflect on what went well, what could be improved, and what you learned. Be honest and analytical — this shows academic maturity.
+TYPE: "flow"
+Content schema (use for step-by-step methodology):
+{ "direction": "horizontal", "steps": [ { "name": "Step 1", "description": "Brief description.", "highlight": false }, { "name": "Step 2", "description": "Key step.", "highlight": true } ] }
+Set "highlight": true for the most important step. "direction" can be "horizontal" or "vertical".
 
-8. Future Scope — Outline 3–5 concrete directions this work could be extended. Be specific rather than generic.
+TYPE: "stats"
+Content schema (use for key metrics/results):
+{ "stats": [ { "value": "95%", "label": "Test Accuracy" }, { "value": "4", "label": "Sprints" }, { "value": "12", "label": "User Testers" } ] }
+Keep values short (numbers, %, abbreviations). Labels should be under 4 words.
 
-9. Gantt Chart — This will be a single uploaded image. Generate a placeholder section with title "Gantt Chart" and an image content block so I can upload the image directly in the poster builder.
+TYPE: "question"
+Content schema (use for the Research Question section):
+{ "questionText": "How can X be used to improve Y in the context of Z?", "subtext": "This study hypothesises that..." }
 
-Important rules:
-- Keep all text concise — this is a poster, not an essay. Favour short sentences and bullet points.
-- Do not invent data or citations not present in my document.
-- You may reorder or rename sections only if it significantly improves academic clarity — note any changes you make.
-- Output only the raw JSON. No explanation before or after.`;
+TYPE: "image"
+Content schema (placeholder — user will upload the image):
+{ "imageUrl": null, "caption": "Figure 1: Describe what this diagram shows.", "fit": "contain" }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GENERATE EXACTLY THESE 9 SECTIONS (in this order)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. title: "Introduction" | type: "text"
+   - body: 3–4 sentences covering the problem, motivation, and project purpose.
+   - highlightBox: One sentence stating the core contribution or value.
+
+2. title: "Research Question" | type: "question"
+   - questionText: The central academic question this project addresses.
+   - subtext: A concise hypothesis or expected finding (1–2 sentences).
+
+3. title: "Aims & Objectives" | type: "list" | style: "numbered"
+   - intro: One sentence stating the overall aim of the project.
+   - items: 4–6 specific, measurable objectives. Each must be one clear sentence starting with a verb (e.g. "Develop...", "Evaluate...", "Implement...").
+
+4. title: "Literature Review" | type: "table"
+   - columns: ["Author & Year", "Focus", "Key Finding", "Relevance"]
+   - rows: Top 5 most relevant sources from the attached document. Each row: [citation, brief topic, main finding, how it relates to this project].
+   - Do NOT invent sources — only use citations present in the document.
+
+5. title: "Methodology" | type: "flow" | direction: "horizontal"
+   - 4–6 steps covering the development/research process (e.g. Requirements → Design → Build → Test → Evaluate).
+   - Set highlight: true on the most important or novel step.
+   - description: 1 sentence per step describing what was done.
+
+6. title: "Key Results / Stats" | type: "stats"
+   - 3–5 stats showing measurable outcomes (accuracy, coverage, user scores, sprint count, etc.).
+   - Extract real values from the document — do not fabricate.
+
+7. title: "System Diagram" | type: "image"
+   - imageUrl: null (user will upload)
+   - caption: Describe which diagram this should be (architecture, data flow, UML class diagram, etc.) and what it illustrates.
+
+8. title: "Evaluation & Reflection" | type: "list" | style: "bullet"
+   - intro: One sentence summarising the overall evaluation outcome.
+   - items: 4–5 honest, analytical bullet points — what worked, what didn't, what was learned. Avoid vague claims.
+
+9. title: "Future Scope" | type: "list" | style: "numbered"
+   - intro: (omit or leave empty)
+   - items: 3–5 specific, concrete future directions. Each must be one actionable sentence — no generics like "improve performance".
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- IDs: use "section-1" through "section-9".
+- All text must be poster-appropriate: short sentences, no academic jargon without explanation.
+- Do not include any text outside the JSON object.
+- Do not wrap the JSON in markdown code fences.
+- Validate that every section has "id", "title", "type", and "content" with the correct schema.`;
 
 const STEPS: { num: number; title: string; detail: string }[] = [
   {

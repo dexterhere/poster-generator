@@ -8,7 +8,19 @@ interface Props {
 }
 
 const TableEditor: React.FC<Props> = ({ section, onUpdate }) => {
-  const content = section.content as TableContent;
+  const raw = section.content as Record<string, unknown>;
+  // Guard: ensure columns and rows are always valid arrays
+  const columns: string[] = Array.isArray(raw?.columns)
+    ? (raw.columns as string[])
+    : Array.isArray(raw?.headers)
+    ? (raw.headers as string[])
+    : ['Column 1', 'Column 2'];
+  const rows: string[][] = Array.isArray(raw?.rows)
+    ? (raw.rows as string[][])
+    : Array.isArray(raw?.data)
+    ? (raw.data as string[][])
+    : [];
+  const content: TableContent = { columns, rows };
 
   const updateCell = (ri: number, ci: number, value: string) => {
     const rows = content.rows.map((row, r) =>

@@ -1,9 +1,31 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Component, type ReactNode } from 'react';
 import { Rnd } from 'react-rnd';
 import { usePosterStore, type SectionType, type Section, defaultContentForType } from '../../store/usePosterStore';
 import SectionRenderer from '../sections/SectionRenderer';
 import { hexOpacity } from '../../utils/colorUtils';
 import { Type, Image, Table, GitCommit, LayoutList, AlignLeft, BarChart3, HelpCircle, X, AlignCenterHorizontal, AlignCenterVertical } from 'lucide-react';
+
+// ─── Per-section error boundary ───────────────────────────────────────────────
+// Prevents one malformed section from crashing the entire canvas.
+class SectionErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-red-50 rounded-lg border border-red-200 p-3">
+          <p className="text-[10px] text-red-500 text-center font-medium">
+            Could not render this section.<br />Check the content format in the editor.
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const HEADER_HEIGHT = 90; // estimated poster header px height for centering calculations
 
@@ -174,11 +196,13 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
                 style={{ padding: section.style?.padding !== undefined ? `${section.style.padding}px` : '16px' }}
               >
                 <div className="w-full h-full relative z-10">
-                  <SectionRenderer
-                    section={section}
-                    primaryColor={theme.primaryColor}
-                    borderStyle={theme.borderStyle}
-                  />
+                  <SectionErrorBoundary>
+                    <SectionRenderer
+                      section={section}
+                      primaryColor={theme.primaryColor}
+                      borderStyle={theme.borderStyle}
+                    />
+                  </SectionErrorBoundary>
                   {!isSelected && <div className="absolute inset-0 z-20" />}
                 </div>
               </div>
