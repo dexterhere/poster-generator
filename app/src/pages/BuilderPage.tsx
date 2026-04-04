@@ -80,6 +80,7 @@ const BuilderPage: React.FC = () => {
   const handleExportClick = () => {
     const { width, height } = layout;
     const CSS_PX_PER_MM = 96 / 25.4;
+    setSelectedSection(null);
     const styleEl = document.createElement('style');
     styleEl.id = '__poster-print-size__';
     styleEl.textContent = `
@@ -90,6 +91,10 @@ const BuilderPage: React.FC = () => {
           height: ${height}px !important;
           transform: scale(${CSS_PX_PER_MM}) !important;
           transform-origin: top left !important;
+        }
+        .editor-only-ui,
+        [data-editor-ui="true"] {
+          display: none !important;
         }
       }
     `;

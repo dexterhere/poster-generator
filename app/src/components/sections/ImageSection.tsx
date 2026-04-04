@@ -49,7 +49,8 @@ const ImageSection: React.FC<Props> = ({ section, primaryColor }) => {
         {content.imageUrl && (
           <button
             onClick={() => fileRef.current?.click()}
-            className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1.5 py-0.5 rounded hover:bg-black/80 transition-colors"
+            className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1.5 py-0.5 rounded hover:bg-black/80 transition-colors print:hidden editor-only-ui"
+            data-editor-ui="true"
           >
             Replace
           </button>

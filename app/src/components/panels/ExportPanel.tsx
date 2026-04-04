@@ -10,6 +10,7 @@ const ExportPanel: React.FC = () => {
 
   const handlePrint = () => {
     const { width, height } = state.layout;
+    state.setSelectedSection(null);
 
     // Our coordinate system is 1px = 1mm.
     // CSS pixels at 96 dpi = 25.4/96 mm each, so to make 1px render as 1mm
@@ -29,6 +30,10 @@ const ExportPanel: React.FC = () => {
           height: ${height}px !important;
           transform: scale(${CSS_PX_PER_MM}) !important;
           transform-origin: top left !important;
+        }
+        .editor-only-ui,
+        [data-editor-ui="true"] {
+          display: none !important;
         }
       }
     `;

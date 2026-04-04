@@ -60,7 +60,8 @@ const SplitImageSection: React.FC<Props> = ({ section, primaryColor }) => {
           {imageUrl && (
             <button
               onClick={() => inputRef.current?.click()}
-              className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 py-0.5 rounded"
+              className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 py-0.5 rounded print:hidden editor-only-ui"
+              data-editor-ui="true"
             >
               Replace
             </button>
