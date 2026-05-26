@@ -22,9 +22,22 @@ const SECTION_TYPES: { value: SectionType; label: string }[] = [
 
 const labelClass = 'block text-[11px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5';
 const inputClass = 'w-full border border-neutral-200 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all';
+const titleFontOptions = [
+  { value: 'display', label: 'Display' },
+  { value: 'body', label: 'Body' },
+  { value: 'mono', label: 'Mono' },
+] as const;
 
 const SectionEditor: React.FC = () => {
-  const { selectedSectionId, sections, updateSection, updateSectionContent, deleteSection, setSelectedSection } = usePosterStore();
+  const {
+    selectedSectionId,
+    sections,
+    updateSection,
+    updateSectionContent,
+    deleteSection,
+    setSelectedSection,
+    theme,
+  } = usePosterStore();
   const section = sections.find((s) => s.id === selectedSectionId);
   if (!section) return null;
 
@@ -37,9 +50,18 @@ const SectionEditor: React.FC = () => {
     updateSection(section.id, { type: newType, content: defaultContentForType(newType) });
   };
 
-  const fontSize  = style.fontSize  ?? 11;
+  const fontSize  = style.fontSize  ?? 9;
+  const titleFontSize = style.titleFontSize ?? 10;
+  const titleFontFamily = style.titleFontFamily ?? 'display';
+  const titleAlign = style.titleAlign ?? 'left';
   const lineH     = style.lineHeight ?? 1.4;
   const align     = style.textAlign  ?? 'left';
+  const borderRadius = style.borderRadius ?? 12;
+  const tableHeaderBgColor = style.tableHeaderBgColor ?? theme.primaryColor;
+  const tableHeaderTextColor = style.tableHeaderTextColor ?? '#ffffff';
+  const tableCellTextColor = style.tableCellTextColor ?? '#374151';
+  const tableHeaderFontSize = style.tableHeaderFontSize ?? 8;
+  const tableCellFontSize = style.tableCellFontSize ?? fontSize;
   const isBold    = style.fontWeight === 'bold';
   const isItalic  = style.fontStyle  === 'italic';
 
@@ -60,6 +82,113 @@ const SectionEditor: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {/* ─── Title & Card Quick Controls ─── */}
+        <div className="border border-indigo-100 bg-indigo-50/50 rounded-lg p-3 space-y-2">
+          <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">Title & Card</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-neutral-500 uppercase w-20 flex-shrink-0">Title Size</span>
+            <input
+              type="range" min="8" max="24" step="1"
+              value={titleFontSize}
+              onChange={(e) => setStyle({ titleFontSize: parseInt(e.target.value) })}
+              className="flex-1 accent-indigo-600 h-1.5"
+            />
+            <span className="text-xs text-neutral-700 font-semibold w-9 text-right tabular-nums">{titleFontSize}px</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-bold text-neutral-500 uppercase w-20 flex-shrink-0">Title Align</span>
+            {(['left', 'center', 'right'] as const).map((a) => (
+              <button
+                key={a}
+                title={`Title align ${a}`}
+                onClick={() => setStyle({ titleAlign: a })}
+                className={`w-8 h-8 rounded border-2 flex items-center justify-center transition-all ${titleAlign === a ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-neutral-200 text-neutral-500 hover:border-neutral-400'}`}
+              >
+                {a === 'left'   && <AlignLeft size={12} />}
+                {a === 'center' && <AlignCenter size={12} />}
+                {a === 'right'  && <AlignRight size={12} />}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-neutral-500 uppercase w-20 flex-shrink-0">Title Font</span>
+            <select
+              value={titleFontFamily}
+              onChange={(e) => setStyle({ titleFontFamily: e.target.value as SectionStyle['titleFontFamily'] })}
+              className="flex-1 border border-neutral-200 rounded-md px-2 py-1.5 text-xs text-neutral-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            >
+              {titleFontOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-neutral-500 uppercase w-20 flex-shrink-0">Radius</span>
+            <input
+              type="range" min="0" max="32" step="1"
+              value={borderRadius}
+              onChange={(e) => setStyle({ borderRadius: parseInt(e.target.value) })}
+              className="flex-1 accent-indigo-600 h-1.5"
+            />
+            <span className="text-xs text-neutral-700 font-semibold w-9 text-right tabular-nums">{borderRadius}px</span>
+          </div>
+        </div>
+
+        {section.type === 'table' && (
+          <div>
+            <label className={labelClass}>Table Style</label>
+            <div className="space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-neutral-600 font-semibold">Header Background</span>
+                <input
+                  type="color"
+                  value={tableHeaderBgColor}
+                  onChange={(e) => setStyle({ tableHeaderBgColor: e.target.value })}
+                  className="h-7 w-10 rounded border border-neutral-300 bg-white"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-neutral-600 font-semibold">Header Text</span>
+                <input
+                  type="color"
+                  value={tableHeaderTextColor}
+                  onChange={(e) => setStyle({ tableHeaderTextColor: e.target.value })}
+                  className="h-7 w-10 rounded border border-neutral-300 bg-white"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-neutral-600 font-semibold">Column Values</span>
+                <input
+                  type="color"
+                  value={tableCellTextColor}
+                  onChange={(e) => setStyle({ tableCellTextColor: e.target.value })}
+                  className="h-7 w-10 rounded border border-neutral-300 bg-white"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-bold text-neutral-400 uppercase w-24 flex-shrink-0">Header Size</span>
+                <input
+                  type="range" min="7" max="16" step="1"
+                  value={tableHeaderFontSize}
+                  onChange={(e) => setStyle({ tableHeaderFontSize: parseInt(e.target.value) })}
+                  className="flex-1 accent-indigo-600 h-1.5"
+                />
+                <span className="text-xs text-neutral-700 font-semibold w-9 text-right tabular-nums">{tableHeaderFontSize}px</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-bold text-neutral-400 uppercase w-24 flex-shrink-0">Value Size</span>
+                <input
+                  type="range" min="7" max="16" step="1"
+                  value={tableCellFontSize}
+                  onChange={(e) => setStyle({ tableCellFontSize: parseInt(e.target.value) })}
+                  className="flex-1 accent-indigo-600 h-1.5"
+                />
+                <span className="text-xs text-neutral-700 font-semibold w-9 text-right tabular-nums">{tableCellFontSize}px</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Title */}
         <div>
           <label className={labelClass}>Section Title</label>
@@ -153,6 +282,10 @@ const SectionEditor: React.FC = () => {
               { value: 'accent-top', label: 'Accent' },
               { value: 'filled',     label: 'Filled' },
               { value: 'minimal',    label: 'Minimal' },
+              { value: 'glass',      label: 'Glass' },
+              { value: 'accent-left',label: 'Left Bar' },
+              { value: 'elevated',   label: 'Elevated' },
+              { value: 'soft-fill',  label: 'Soft Fill' },
             ] as const).map((opt) => {
               const active = (style.containerStyle ?? 'default') === opt.value;
               return (
@@ -179,6 +312,9 @@ const SectionEditor: React.FC = () => {
             />
             <span className="text-[11px] text-neutral-600 font-medium">Hide title bar (more content space)</span>
           </label>
+          <p className="text-[10px] text-neutral-400 mt-2">
+            Tip: select a section, then double-click text directly on the canvas to edit in place.
+          </p>
         </div>
 
         {/* ─── Layout ─── */}

@@ -10,6 +10,7 @@ type PanelId = 'header' | 'sections' | 'theme' | 'export';
 interface LeftPanelProps {
   activePanel: PanelId | null;
   onClose: () => void;
+  offsetLeft?: number;
 }
 
 const PANEL_LABELS: Record<PanelId, string> = {
@@ -19,7 +20,7 @@ const PANEL_LABELS: Record<PanelId, string> = {
   export:   'Export',
 };
 
-const LeftPanel: React.FC<LeftPanelProps> = ({ activePanel, onClose }) => {
+const LeftPanel: React.FC<LeftPanelProps> = ({ activePanel, onClose, offsetLeft = 0 }) => {
   const isOpen = activePanel !== null;
 
   return (
@@ -27,6 +28,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ activePanel, onClose }) => {
       className={`absolute left-0 top-0 bottom-0 z-30 flex flex-col bg-white border-r border-neutral-200 shadow-xl transition-transform duration-200 ease-in-out print:hidden`}
       style={{
         width: '300px',
+        left: `${offsetLeft}px`,
         transform: isOpen ? 'translateX(0)' : 'translateX(-300px)',
         pointerEvents: isOpen ? 'auto' : 'none',
       }}

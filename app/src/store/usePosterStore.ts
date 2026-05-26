@@ -85,11 +85,31 @@ export type SectionContent =
 export interface SectionStyle {
   padding?: number;
   fontSize?: number;                           // px — base body font size (8–28)
+  titleFontSize?: number;                      // px — section title size
+  titleFontFamily?: 'display' | 'body' | 'mono';
+  titleAlign?: 'left' | 'center' | 'right';   // title bar alignment
+  borderRadius?: number;                       // px — card corner radius
   textAlign?: 'left' | 'center' | 'right';
   fontWeight?: 'normal' | 'bold';
   fontStyle?: 'normal' | 'italic';
   lineHeight?: number;                         // multiplier e.g. 1.4
-  containerStyle?: 'default' | 'none' | 'card' | 'outline' | 'accent-top' | 'filled' | 'minimal';
+  tableHeaderBgColor?: string;
+  tableHeaderTextColor?: string;
+  tableCellTextColor?: string;
+  tableHeaderFontSize?: number;
+  tableCellFontSize?: number;
+  containerStyle?:
+    | 'default'
+    | 'none'
+    | 'card'
+    | 'outline'
+    | 'accent-top'
+    | 'filled'
+    | 'minimal'
+    | 'glass'
+    | 'accent-left'
+    | 'elevated'
+    | 'soft-fill';
   hideTitle?: boolean;
 }
 

@@ -26,6 +26,9 @@ import {
   X,
   AlignCenterHorizontal,
   AlignCenterVertical,
+  Copy,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 // ─── Per-section error boundary ───────────────────────────────────────────────
@@ -67,9 +70,9 @@ const SECTION_CARD_STYLES = {
     border: "1px solid #e5e7eb",
     borderTop: `3px solid ${color}`,
   }),
-  shadow: (_color: string) => ({
-    border: "none",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  shadow: (color: string) => ({
+    border: `1px solid ${hexOpacity(color, 26)}`,
+    boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
   }),
   "filled-header": (color: string) => ({
     border: `1px solid ${hexOpacity(color, 48)}`,
@@ -121,6 +124,33 @@ function resolveContainerStyle(
       background: hexOpacity(primaryColor, 8),
       borderRadius: "8px",
     };
+  if (cs === "glass")
+    return {
+      border: `1px solid ${hexOpacity(primaryColor, 42)}`,
+      background: hexOpacity("#ffffff", 170),
+      backdropFilter: "blur(6px)",
+      borderRadius: "12px",
+    };
+  if (cs === "accent-left")
+    return {
+      border: "1px solid #e5e7eb",
+      borderLeft: `4px solid ${primaryColor}`,
+      borderRadius: "8px",
+      background: "white",
+    };
+  if (cs === "elevated")
+    return {
+      border: "none",
+      borderRadius: "12px",
+      background: "white",
+      boxShadow: "0 10px 24px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.08)",
+    };
+  if (cs === "soft-fill")
+    return {
+      border: `1px solid ${hexOpacity(primaryColor, 34)}`,
+      background: hexOpacity(primaryColor, 12),
+      borderRadius: "10px",
+    };
   return SECTION_CARD_STYLES["thin"](primaryColor);
 }
 
@@ -157,10 +187,12 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
     selectedSectionId,
     setSelectedSection,
     updateSection,
+    updateSectionContent,
     addSection,
     deleteSection,
   } = usePosterStore();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const idCounterRef = useRef(0);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -171,6 +203,26 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
   }, []);
+
+  useEffect(() => {
+    const maxId = sections.reduce((max, section) => {
+      const match = section.id.match(/^section-(\d+)$/);
+      const parsed = match ? Number(match[1]) : NaN;
+      return Number.isFinite(parsed) ? Math.max(max, parsed) : max;
+    }, 0);
+    idCounterRef.current = Math.max(idCounterRef.current, maxId);
+  }, [sections]);
+
+  const nextSectionId = () => {
+    idCounterRef.current += 1;
+    return `section-${idCounterRef.current}`;
+  };
+
+  const getMaxZIndex = () =>
+    sections.reduce((max, item) => Math.max(max, item.position?.zIndex ?? 1), 1);
+
+  const getMinZIndex = () =>
+    sections.reduce((min, item) => Math.min(min, item.position?.zIndex ?? 1), 1);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -186,7 +238,7 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
 
   const handleAddSection = (type: SectionType) => {
     if (!contextMenu) return;
-    const newId = `section-${Date.now()}`;
+    const newId = nextSectionId();
     addSection({
       id: newId,
       position: {
@@ -241,11 +293,27 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
       {sections.map((section) => {
         const isSelected = selectedSectionId === section.id;
         const hideTitle = section.style?.hideTitle ?? false;
-        const containerStyle = resolveContainerStyle(
+        const borderRadius = section.style?.borderRadius ?? 12;
+        const titleFontSize = section.style?.titleFontSize ?? 10;
+        const titleFontFamily = section.style?.titleFontFamily ?? "display";
+        const titleAlign = section.style?.titleAlign ?? "left";
+        const titleAlignClass =
+          titleAlign === "center" ? "text-center" : titleAlign === "right" ? "text-right" : "text-left";
+        const titleFontFamilyCss =
+          titleFontFamily === "body"
+            ? "var(--font-body)"
+            : titleFontFamily === "mono"
+            ? "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+            : "var(--font-display)";
+        const baseContainerStyle = resolveContainerStyle(
           section,
           theme.borderStyle,
           theme.primaryColor,
         );
+        const containerStyle: React.CSSProperties = {
+          ...baseContainerStyle,
+          borderRadius: `${borderRadius}px`,
+        };
 
         // Header bar style (only shown when !hideTitle)
         const headerBarStyle: React.CSSProperties =
@@ -307,12 +375,12 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
             style={{
               zIndex: isSelected ? 999 : (section.position?.zIndex || 1) + 10,
             }}
-            className="rounded-xl overflow-visible flex flex-col group select-none bg-white"
+            className="overflow-visible flex flex-col group select-none bg-white"
             dragHandleClassName="drag-handle"
             data-section-root="true"
           >
             <div
-              className="absolute inset-0 rounded-xl overflow-hidden shadow-sm"
+              className="absolute inset-0 overflow-hidden shadow-sm"
               style={containerStyle}
               onClick={(e) => e.stopPropagation()}
             >
@@ -320,9 +388,16 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
               {!hideTitle ? (
                 <div
                   className="drag-handle px-3 py-1.5 flex-shrink-0 flex items-center cursor-move"
-                  style={headerBarStyle}
+                  style={{
+                    ...headerBarStyle,
+                    justifyContent:
+                      titleAlign === "center" ? "center" : titleAlign === "right" ? "flex-end" : "flex-start",
+                  }}
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-wide truncate">
+                  <span
+                    className={`w-full font-bold uppercase tracking-wide truncate ${titleAlignClass}`}
+                    style={{ fontSize: `${titleFontSize}px`, fontFamily: titleFontFamilyCss }}
+                  >
                     {section.title}
                   </span>
                 </div>
@@ -347,6 +422,10 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
                       section={section}
                       primaryColor={theme.primaryColor}
                       borderStyle={theme.borderStyle}
+                      isSelected={isSelected}
+                      onUpdateContent={(contentPatch) =>
+                        updateSectionContent(section.id, contentPatch)
+                      }
                     />
                   </SectionErrorBoundary>
                   {!isSelected && <div className="absolute inset-0 z-20" />}
@@ -357,7 +436,8 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
             {/* Selection ring — overlay above content */}
             {isSelected && (
               <div
-                className="absolute inset-0 rounded-xl ring-2 ring-indigo-500 ring-offset-1 pointer-events-none z-20 print:hidden editor-only-ui"
+                className="absolute inset-0 ring-2 ring-indigo-500 ring-offset-1 pointer-events-none z-20 print:hidden editor-only-ui"
+                style={{ borderRadius: `${borderRadius}px` }}
                 data-editor-ui="true"
               />
             )}
@@ -370,6 +450,35 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
                 onMouseDown={(e) => e.stopPropagation()}
                 data-editor-ui="true"
               >
+                <div className="flex bg-neutral-800 rounded mx-1 p-0.5">
+                  <button
+                    onClick={() => {
+                      const baseSize = section.style?.fontSize ?? 9;
+                      const next = Math.max(7, baseSize - 1);
+                      updateSection(section.id, {
+                        style: { ...(section.style ?? {}), fontSize: next },
+                      });
+                    }}
+                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
+                    title="Decrease text size"
+                  >
+                    <Type size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const baseSize = section.style?.fontSize ?? 9;
+                      const next = Math.min(32, baseSize + 1);
+                      updateSection(section.id, {
+                        style: { ...(section.style ?? {}), fontSize: next },
+                      });
+                    }}
+                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
+                    title="Increase text size"
+                  >
+                    <Type size={16} />
+                  </button>
+                </div>
+                <div className="w-px h-4 bg-neutral-700 mx-1" />
                 <div className="flex bg-neutral-800 rounded mx-1 p-0.5">
                   <button
                     onClick={() =>
@@ -408,6 +517,52 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
                   </button>
                 </div>
                 <div className="w-px h-4 bg-neutral-700 mx-1" />
+                <div className="flex bg-neutral-800 rounded mx-1 p-0.5">
+                  <button
+                    onClick={() =>
+                      updateSection(section.id, {
+                        position: { ...section.position!, zIndex: getMaxZIndex() + 1 },
+                      })
+                    }
+                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
+                    title="Bring to front"
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    onClick={() =>
+                      updateSection(section.id, {
+                        position: { ...section.position!, zIndex: getMinZIndex() - 1 },
+                      })
+                    }
+                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
+                    title="Send to back"
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
+                <div className="w-px h-4 bg-neutral-700 mx-1" />
+                <button
+                  onClick={() => {
+                    const cloneId = nextSectionId();
+                    const maxZ = getMaxZIndex();
+                    addSection({
+                      ...section,
+                      id: cloneId,
+                      position: {
+                        ...section.position!,
+                        x: Math.min(layout.width - 80, (section.position?.x ?? 0) + 24),
+                        y: Math.min(layout.height - 80, (section.position?.y ?? 0) + 24),
+                        zIndex: maxZ + 1,
+                      },
+                    });
+                    setSelectedSection(cloneId);
+                  }}
+                  className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors mx-1"
+                  title="Duplicate section"
+                >
+                  <Copy size={14} />
+                </button>
                 <button
                   onClick={() => deleteSection(section.id)}
                   className="p-1.5 hover:bg-red-500 rounded text-neutral-300 hover:text-white transition-colors mx-1"

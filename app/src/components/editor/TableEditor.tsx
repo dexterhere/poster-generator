@@ -8,7 +8,7 @@ interface Props {
 }
 
 const TableEditor: React.FC<Props> = ({ section, onUpdate }) => {
-  const raw = section.content as Record<string, unknown>;
+  const raw = section.content as unknown as Record<string, unknown>;
   // Guard: ensure columns and rows are always valid arrays
   const columns: string[] = Array.isArray(raw?.columns)
     ? (raw.columns as string[])

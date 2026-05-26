@@ -1,20 +1,23 @@
 import React from 'react';
-import { type Section, type FlowContent } from '../../store/usePosterStore';
+import { type Section, type FlowContent, type SectionContent } from '../../store/usePosterStore';
 import { hexOpacity } from '../../utils/colorUtils';
+import InlineEditableText from './InlineEditableText';
 
 interface Props {
   section: Section;
   primaryColor: string;
   borderStyle: string;
+  isSelected?: boolean;
+  onUpdateContent?: (content: Partial<SectionContent>) => void;
 }
 
-const FlowSection: React.FC<Props> = ({ section, primaryColor }) => {
+const FlowSection: React.FC<Props> = ({ section, primaryColor, isSelected = false, onUpdateContent }) => {
   const content = section.content as FlowContent;
   const s = section.style ?? {};
   const isVertical = content.direction === 'vertical';
 
   const nameStyle: React.CSSProperties = {
-    fontSize:   s.fontSize   ? `${s.fontSize}px`        : '11px',
+    fontSize:   s.fontSize   ? `${s.fontSize}px`        : '9px',
     fontWeight: s.fontWeight ?? 'bold',
     fontStyle:  s.fontStyle  ?? 'normal',
     lineHeight: s.lineHeight ?? 1.4,
@@ -23,7 +26,7 @@ const FlowSection: React.FC<Props> = ({ section, primaryColor }) => {
   };
 
   const descStyle: React.CSSProperties = {
-    fontSize:   s.fontSize ? `${Math.max(8, s.fontSize - 2)}px` : '10px',
+    fontSize:   s.fontSize ? `${Math.max(8, s.fontSize - 2)}px` : '8px',
     fontFamily: 'var(--font-body)',
     color:      '#6b7280',
     lineHeight: s.lineHeight ?? 1.4,
@@ -42,8 +45,32 @@ const FlowSection: React.FC<Props> = ({ section, primaryColor }) => {
               {i + 1}
             </div>
             <div className={`flex-1 min-w-0 ${isVertical ? '' : 'flex flex-col items-center'}`}>
-              <p style={{ ...nameStyle, color: step.highlight ? primaryColor : '#1f2937' }}>{step.name}</p>
-              <p style={descStyle} className="mt-0.5 max-w-[150px]">{step.description}</p>
+              <InlineEditableText
+                as="p"
+                text={step.name}
+                canEdit={isSelected}
+                style={{ ...nameStyle, color: step.highlight ? primaryColor : '#1f2937' }}
+                multiline={false}
+                onCommit={(value) => {
+                  const steps = content.steps.map((entry, idx) =>
+                    idx === i ? { ...entry, name: value } : entry
+                  );
+                  onUpdateContent?.({ steps } as Partial<FlowContent>);
+                }}
+              />
+              <InlineEditableText
+                as="p"
+                text={step.description}
+                canEdit={isSelected}
+                style={descStyle}
+                className="mt-0.5 max-w-[150px]"
+                onCommit={(value) => {
+                  const steps = content.steps.map((entry, idx) =>
+                    idx === i ? { ...entry, description: value } : entry
+                  );
+                  onUpdateContent?.({ steps } as Partial<FlowContent>);
+                }}
+              />
             </div>
           </div>
           {i < content.steps.length - 1 && (

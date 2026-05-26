@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { usePosterStore } from '../../store/usePosterStore';
 import { Download, FileJson, Upload, CheckCircle, Printer, ChevronDown, ChevronUp } from 'lucide-react';
+import { createPosterDraft, normalizeLoadedDraft } from '../../utils/draft';
 
 const ExportPanel: React.FC = () => {
   const state = usePosterStore();
@@ -47,14 +48,7 @@ const ExportPanel: React.FC = () => {
   };
 
   const handleSaveDraft = () => {
-    const data = {
-      id: state.id,
-      header: state.header,
-      footer: state.footer,
-      theme: state.theme,
-      layout: state.layout,
-      sections: state.sections,
-    };
+    const data = createPosterDraft(state);
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -225,9 +219,7 @@ const ExportPanel: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const data = JSON.parse(ev.target?.result as string);
-        // Strip template annotation keys
-        delete data._instructions;
+        const data = normalizeLoadedDraft(JSON.parse(ev.target?.result as string));
         if (data.header) state.updateHeader(data.header);
         if (data.footer) state.updateFooter(data.footer);
         if (data.theme)  state.updateTheme(data.theme);
@@ -245,13 +237,7 @@ const ExportPanel: React.FC = () => {
           const START_X    = 20;
           const START_Y    = 110; // below poster header
 
-          data.sections.forEach((s: any, idx: number) => {
-            // Strip template-only annotation fields before adding to canvas
-            delete s._schema;
-
-            if (!s.style) s.style = {};
-            s.style.padding = s.style.padding ?? 12;
-
+          data.sections.forEach((s, idx: number) => {
             // Assign a staggered grid position if the section has no position data
             if (!s.position || (s.position.x === 0 && s.position.y === 0 && !s.position.width)) {
               const col = idx % COLS;
@@ -355,7 +341,7 @@ const ExportPanel: React.FC = () => {
             </div>
             <div>
               <p className="font-bold text-neutral-700 mb-1">Step 4 — Edit section content</p>
-              <p>Click any section to select it, then edit its content in the <strong>Sections</strong> panel on the left. Give each section a clear title (e.g. "Introduction", "Methodology", "Results").</p>
+              <p>Click any section to select it, then edit its content in the right inspector. You can also double-click text directly on the canvas for quick inline edits. Give each section a clear title (e.g. "Introduction", "Methodology", "Results").</p>
             </div>
             <div>
               <p className="font-bold text-neutral-700 mb-1">Step 5 — Style your poster</p>
@@ -363,7 +349,7 @@ const ExportPanel: React.FC = () => {
             </div>
             <div>
               <p className="font-bold text-neutral-700 mb-1">Step 6 — Save your work</p>
-              <p>Click <strong>Save Draft as JSON</strong> regularly to keep a backup. You can reload it later using <strong>Load Draft from JSON</strong>. Note: locally uploaded images are not saved in the draft.</p>
+              <p>Refreshing this page clears unsaved work. Click <strong>Save Draft as JSON</strong> regularly to keep a backup, then reload using <strong>Load Draft from JSON</strong>. Note: locally uploaded images are not saved in the draft, and layout positions may need rearranging after loading.</p>
             </div>
             <div>
               <p className="font-bold text-neutral-700 mb-1">Step 7 — Export and print</p>
@@ -410,7 +396,7 @@ const ExportPanel: React.FC = () => {
           onChange={handleLoadDraft}
         />
         <p className="text-[10px] text-neutral-400 text-center mb-4">
-          Note: Local uploaded images are not included in the draft file.
+          Note: Refresh clears unsaved work. JSON draft excludes local image files, and loaded drafts may need manual section rearrangement.
         </p>
 
         <div className="pt-4 border-t border-neutral-200">

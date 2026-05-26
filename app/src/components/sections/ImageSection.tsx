@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { type Section, type ImageContent } from '../../store/usePosterStore';
+import { type Section, type ImageContent, type SectionContent } from '../../store/usePosterStore';
 import { usePosterStore } from '../../store/usePosterStore';
 import { Upload } from 'lucide-react';
 import { hexOpacity } from '../../utils/colorUtils';
@@ -8,6 +8,8 @@ interface Props {
   section: Section;
   primaryColor: string;
   borderStyle: string;
+  isSelected?: boolean;
+  onUpdateContent?: (content: Partial<SectionContent>) => void;
 }
 
 const ImageSection: React.FC<Props> = ({ section, primaryColor }) => {

@@ -3,6 +3,7 @@ import { usePosterStore } from '../store/usePosterStore';
 import TopBar from '../components/layout/TopBar';
 import LeftPanel from '../components/layout/LeftPanel';
 import RightInspector from '../components/layout/RightInspector';
+import LeftToolbar from '../components/layout/LeftToolbar';
 import PosterHeader from '../components/poster/PosterHeader';
 import PosterFooter from '../components/poster/PosterFooter';
 import PosterCanvas from '../components/poster/PosterCanvas';
@@ -37,12 +38,14 @@ const BuilderPage: React.FC = () => {
   // ─── Dynamic scale (fit to viewport) ──────────────────────────────────────
   const getDynamicScale = useCallback(() => {
     const padding = 80;
-    const leftW  = (!isFullScreen && activePanel)      ? 300 : 0;
+    const toolbarW = isFullScreen ? 0 : 56;
+    const leftW  = (!isFullScreen && activePanel) ? 300 + toolbarW : toolbarW;
     const rightW = (!isFullScreen && selectedSectionId) ? 280 : 0;
     const rulerSpace = (!isFullScreen && theme.rulerEnabled) ? RULER_SIZE * 2 : 0;
     const topBarH = isFullScreen ? 0 : 48;
+    const warningBarH = isFullScreen ? 0 : 36;
     const availableWidth  = window.innerWidth  - leftW - rightW - padding - rulerSpace;
-    const availableHeight = window.innerHeight - topBarH - padding - rulerSpace;
+    const availableHeight = window.innerHeight - topBarH - warningBarH - padding - rulerSpace;
     return Math.min(availableWidth / layout.width, availableHeight / layout.height);
   }, [isFullScreen, activePanel, selectedSectionId, theme.rulerEnabled, layout.width, layout.height]);
 
@@ -165,12 +168,16 @@ const BuilderPage: React.FC = () => {
         onExportClick={handleExportClick}
         onPanelToggle={handlePanelToggle}
       />
+      <div className="h-9 px-4 flex items-center bg-amber-50 border-b border-amber-200 text-amber-800 text-[11px] font-medium print:hidden">
+        Refreshing the page clears unsaved work. Save Draft as JSON often. After reloading JSON, section layout/position may need manual rearrangement.
+      </div>
 
       {/* Main body */}
       <div className="flex flex-1 overflow-hidden relative">
+        <LeftToolbar activePanel={activePanel} onPanelToggle={handlePanelToggle} />
 
         {/* Left sliding panel — overlays the canvas */}
-        <LeftPanel activePanel={activePanel} onClose={() => setActivePanel(null)} />
+        <LeftPanel activePanel={activePanel} onClose={() => setActivePanel(null)} offsetLeft={56} />
 
         {/* ─── Canvas workspace ─────────────────────────────────────────── */}
         <div

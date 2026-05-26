@@ -1,5 +1,5 @@
 import React from 'react';
-import { type Section } from '../../store/usePosterStore';
+import { type Section, type SectionContent } from '../../store/usePosterStore';
 import TextSection from './TextSection';
 import TableSection from './TableSection';
 import FlowSection from './FlowSection';
@@ -13,10 +13,18 @@ interface Props {
   section: Section;
   primaryColor: string;
   borderStyle: string;
+  isSelected?: boolean;
+  onUpdateContent?: (content: Partial<SectionContent>) => void;
 }
 
-const SectionRenderer: React.FC<Props> = ({ section, primaryColor, borderStyle }) => {
-  const props = { section, primaryColor, borderStyle };
+const SectionRenderer: React.FC<Props> = ({
+  section,
+  primaryColor,
+  borderStyle,
+  isSelected = false,
+  onUpdateContent,
+}) => {
+  const props = { section, primaryColor, borderStyle, isSelected, onUpdateContent };
   switch (section.type) {
     case 'text':       return <TextSection {...props} />;
     case 'table':      return <TableSection {...props} />;

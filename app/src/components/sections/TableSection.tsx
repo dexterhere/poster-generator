@@ -1,11 +1,14 @@
 import React from 'react';
-import { type Section, type TableContent } from '../../store/usePosterStore';
+import { type Section, type TableContent, type SectionContent } from '../../store/usePosterStore';
 import { hexOpacity } from '../../utils/colorUtils';
+import InlineEditableText from './InlineEditableText';
 
 interface Props {
   section: Section;
   primaryColor: string;
   borderStyle: string;
+  isSelected?: boolean;
+  onUpdateContent?: (content: Partial<SectionContent>) => void;
 }
 
 /** Coerce any value to a plain string safely. */
@@ -71,25 +74,32 @@ function normaliseTable(raw: unknown): TableContent {
   }
 }
 
-const TableSection: React.FC<Props> = ({ section, primaryColor }) => {
+const TableSection: React.FC<Props> = ({ section, primaryColor, isSelected = false, onUpdateContent }) => {
   const content = normaliseTable(section.content);
   const s = section.style ?? {};
+  const tableCellFontSize = s.tableCellFontSize ?? s.fontSize ?? 7;
+  const tableHeaderFontSize = s.tableHeaderFontSize ?? Math.max(7, tableCellFontSize + 1);
+  const tableHeaderBgColor = s.tableHeaderBgColor ?? primaryColor;
+  const tableHeaderTextColor = s.tableHeaderTextColor ?? '#ffffff';
+  const tableCellTextColor = s.tableCellTextColor ?? '#374151';
 
   const cellStyle: React.CSSProperties = {
-    fontSize:   s.fontSize   ? `${s.fontSize}px`  : '9px',
+    fontSize:   `${tableCellFontSize}px`,
     fontFamily: 'var(--font-body)',
     fontWeight: s.fontWeight ?? 'normal',
     fontStyle:  s.fontStyle  ?? 'normal',
     lineHeight: s.lineHeight ?? 1.4,
     textAlign:  s.textAlign  ?? 'left',
+    color:      tableCellTextColor,
   };
 
   const headerStyle: React.CSSProperties = {
     ...cellStyle,
+    fontSize: `${tableHeaderFontSize}px`,
     fontFamily: 'var(--font-display)',
     fontWeight: 'bold',
-    color:      'white',
-    backgroundColor: primaryColor,
+    color:      tableHeaderTextColor,
+    backgroundColor: tableHeaderBgColor,
   };
 
   return (
@@ -104,7 +114,16 @@ const TableSection: React.FC<Props> = ({ section, primaryColor }) => {
                   className="px-2 py-1.5 text-left border border-white/20"
                   style={headerStyle}
                 >
-                  {col}
+                  <InlineEditableText
+                    as="span"
+                    text={col}
+                    canEdit={isSelected}
+                    multiline={false}
+                    onCommit={(value) => {
+                      const columns = content.columns.map((entry, idx) => (idx === i ? value : entry));
+                      onUpdateContent?.({ columns } as Partial<TableContent>);
+                    }}
+                  />
                 </th>
               ))}
             </tr>
@@ -118,7 +137,19 @@ const TableSection: React.FC<Props> = ({ section, primaryColor }) => {
                     className="px-2 py-1.5 border border-neutral-200 text-neutral-700"
                     style={cellStyle}
                   >
-                    {cell}
+                    <InlineEditableText
+                      as="span"
+                      text={cell}
+                      canEdit={isSelected}
+                      onCommit={(value) => {
+                        const rows = content.rows.map((entry, rowIndex) =>
+                          rowIndex === ri
+                            ? entry.map((cellValue, colIndex) => (colIndex === ci ? value : cellValue))
+                            : entry
+                        );
+                        onUpdateContent?.({ rows } as Partial<TableContent>);
+                      }}
+                    />
                   </td>
                 ))}
               </tr>

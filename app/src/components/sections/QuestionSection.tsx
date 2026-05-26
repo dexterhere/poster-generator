@@ -1,20 +1,23 @@
 import React from 'react';
-import { type Section, type QuestionContent } from '../../store/usePosterStore';
+import { type Section, type QuestionContent, type SectionContent } from '../../store/usePosterStore';
 import { hexOpacity } from '../../utils/colorUtils';
+import InlineEditableText from './InlineEditableText';
 
 interface Props {
   section: Section;
   primaryColor: string;
   borderStyle: string;
+  isSelected?: boolean;
+  onUpdateContent?: (content: Partial<SectionContent>) => void;
 }
 
-const QuestionSection: React.FC<Props> = ({ section, primaryColor }) => {
+const QuestionSection: React.FC<Props> = ({ section, primaryColor, isSelected = false, onUpdateContent }) => {
   const content = section.content as QuestionContent;
   const s = section.style ?? {};
   const align = s.textAlign ?? 'center';
 
   const questionStyle: React.CSSProperties = {
-    fontSize:   s.fontSize   ? `${s.fontSize}px`        : '18px',
+    fontSize:   s.fontSize   ? `${s.fontSize}px`        : '16px',
     fontWeight: s.fontWeight ?? 'bold',
     fontStyle:  s.fontStyle  ?? 'normal',
     lineHeight: s.lineHeight ?? 1.4,
@@ -24,7 +27,7 @@ const QuestionSection: React.FC<Props> = ({ section, primaryColor }) => {
   };
 
   const subtextStyle: React.CSSProperties = {
-    fontSize:   s.fontSize   ? `${Math.max(9, s.fontSize - 4)}px` : '12px',
+    fontSize:   s.fontSize   ? `${Math.max(8, s.fontSize - 4)}px` : '10px',
     fontWeight: 'normal',
     fontStyle:  s.fontStyle  ?? 'normal',
     lineHeight: s.lineHeight ?? 1.4,
@@ -42,9 +45,22 @@ const QuestionSection: React.FC<Props> = ({ section, primaryColor }) => {
         padding: '16px',
       }}
     >
-      <h2 style={questionStyle}>{content.questionText}</h2>
+      <InlineEditableText
+        as="h2"
+        text={content.questionText}
+        canEdit={isSelected}
+        style={questionStyle}
+        onCommit={(value) => onUpdateContent?.({ questionText: value } as Partial<QuestionContent>)}
+      />
       {content.subtext && (
-        <p style={subtextStyle} className="max-w-[90%]">{content.subtext}</p>
+        <InlineEditableText
+          as="p"
+          text={content.subtext}
+          canEdit={isSelected}
+          style={subtextStyle}
+          className="max-w-[90%]"
+          onCommit={(value) => onUpdateContent?.({ subtext: value } as Partial<QuestionContent>)}
+        />
       )}
     </div>
   );
