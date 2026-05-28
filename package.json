@@ -1,6 +1,10 @@
 {
   "scripts": {
-    "dev": "npm --prefix app run dev"
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "lint": "npm --prefix app run lint",
+    "typecheck": "npm --prefix app run typecheck",
+    "preview": "npm --prefix app run preview"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
