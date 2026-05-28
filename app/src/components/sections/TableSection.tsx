@@ -82,6 +82,30 @@ const TableSection: React.FC<Props> = ({ section, primaryColor, isSelected = fal
   const tableHeaderBgColor = s.tableHeaderBgColor ?? primaryColor;
   const tableHeaderTextColor = s.tableHeaderTextColor ?? '#ffffff';
   const tableCellTextColor = s.tableCellTextColor ?? '#374151';
+  const tableVariant = s.tableVariant ?? 'classic';
+  const tableDensity = s.tableDensity ?? 'cozy';
+  const tableBorderStyle = s.tableBorderStyle ?? 'grid';
+  const tableStriped = s.tableStriped ?? tableVariant === 'zebra';
+  const tableHeaderCase = s.tableHeaderCase ?? 'none';
+
+  const densityPadding = {
+    compact: '4px 6px',
+    cozy: '6px 8px',
+    roomy: '9px 10px',
+  }[tableDensity];
+
+  const borderColor =
+    tableBorderStyle === 'none'
+      ? 'transparent'
+      : tableBorderStyle === 'subtle'
+      ? hexOpacity(primaryColor, 32)
+      : hexOpacity(primaryColor, 56);
+
+  const tableWrapperStyle: React.CSSProperties = {
+    borderRadius: tableVariant === 'presentation' ? 10 : tableVariant === 'matrix' ? 0 : 8,
+    overflow: 'hidden',
+    border: tableBorderStyle === 'none' ? 'none' : `1px solid ${borderColor}`,
+  };
 
   const cellStyle: React.CSSProperties = {
     fontSize:   `${tableCellFontSize}px`,
@@ -91,6 +115,10 @@ const TableSection: React.FC<Props> = ({ section, primaryColor, isSelected = fal
     lineHeight: s.lineHeight ?? 1.4,
     textAlign:  s.textAlign  ?? 'left',
     color:      tableCellTextColor,
+    padding: densityPadding,
+    borderColor,
+    borderStyle: 'solid',
+    borderWidth: tableBorderStyle === 'grid' ? 1 : tableBorderStyle === 'subtle' ? '0 0 1px 0' : 0,
   };
 
   const headerStyle: React.CSSProperties = {
@@ -98,20 +126,25 @@ const TableSection: React.FC<Props> = ({ section, primaryColor, isSelected = fal
     fontSize: `${tableHeaderFontSize}px`,
     fontFamily: 'var(--font-display)',
     fontWeight: 'bold',
-    color:      tableHeaderTextColor,
-    backgroundColor: tableHeaderBgColor,
+    color:      tableVariant === 'minimal' ? primaryColor : tableHeaderTextColor,
+    backgroundColor: tableVariant === 'minimal' ? 'transparent' : tableHeaderBgColor,
+    textTransform: tableHeaderCase === 'none' ? undefined : tableHeaderCase,
+    borderColor,
+    borderStyle: 'solid',
+    borderWidth: tableBorderStyle === 'grid' ? 1 : tableBorderStyle === 'subtle' ? '0 0 2px 0' : 0,
   };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse">
+        <div style={tableWrapperStyle}>
+          <table className="w-full border-collapse">
           <thead>
             <tr>
               {content.columns.map((col, i) => (
                 <th
                   key={i}
-                  className="px-2 py-1.5 text-left border border-white/20"
+                  className="text-left"
                   style={headerStyle}
                 >
                   <InlineEditableText
@@ -130,11 +163,23 @@ const TableSection: React.FC<Props> = ({ section, primaryColor, isSelected = fal
           </thead>
           <tbody>
             {content.rows.map((row, ri) => (
-              <tr key={ri} style={{ backgroundColor: ri % 2 !== 0 ? hexOpacity(primaryColor, 8) : undefined }}>
+              <tr
+                key={ri}
+                style={{
+                  backgroundColor:
+                    tableVariant === 'presentation'
+                      ? ri % 2 === 0 ? hexOpacity(primaryColor, 10) : '#ffffff'
+                      : tableStriped && ri % 2 !== 0
+                      ? hexOpacity(primaryColor, 8)
+                      : tableVariant === 'matrix'
+                      ? hexOpacity(primaryColor, 5)
+                      : undefined,
+                }}
+              >
                 {row.map((cell, ci) => (
                   <td
                     key={ci}
-                    className="px-2 py-1.5 border border-neutral-200 text-neutral-700"
+                    className="text-neutral-700"
                     style={cellStyle}
                   >
                     <InlineEditableText
@@ -155,7 +200,8 @@ const TableSection: React.FC<Props> = ({ section, primaryColor, isSelected = fal
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   );

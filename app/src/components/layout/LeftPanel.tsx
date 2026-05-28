@@ -17,7 +17,7 @@ const PANEL_LABELS: Record<PanelId, string> = {
   header:   'Header',
   sections: 'Sections',
   theme:    'Theme & Layout',
-  export:   'Export',
+  export:   'Save & Export',
 };
 
 const LeftPanel: React.FC<LeftPanelProps> = ({ activePanel, onClose, offsetLeft = 0 }) => {
@@ -25,7 +25,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ activePanel, onClose, offsetLeft 
 
   return (
     <div
-      className={`absolute left-0 top-0 bottom-0 z-30 flex flex-col bg-white border-r border-neutral-200 shadow-xl transition-transform duration-200 ease-in-out print:hidden`}
+      className="absolute left-0 top-0 bottom-0 z-30 flex flex-col glass-panel border-r border-white/10 transition-transform duration-200 ease-in-out print:hidden"
       style={{
         width: '300px',
         left: `${offsetLeft}px`,
@@ -34,15 +34,15 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ activePanel, onClose, offsetLeft 
       }}
     >
       {/* Panel header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-neutral-100 bg-neutral-50">
-        <span className="text-sm font-semibold text-neutral-700">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <span className="text-sm font-semibold text-white/80" style={{ fontFamily: "'Poppins', sans-serif" }}>
           {activePanel ? PANEL_LABELS[activePanel] : ''}
         </span>
         <button
           onClick={onClose}
-          className="w-6 h-6 flex items-center justify-center rounded hover:bg-neutral-200 text-neutral-400 hover:text-neutral-700 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors"
         >
-          <X size={13} />
+          <X size={14} />
         </button>
       </div>
 

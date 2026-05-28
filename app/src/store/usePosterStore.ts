@@ -34,14 +34,17 @@ export interface FlowContent {
 
 export interface ImageContent {
   imageUrl: string | null;
+  imageId?: string | null; // IndexedDB reference for persisted images
   caption: string;
   fit: 'contain' | 'cover';
 }
 
 export interface SplitImageContent {
   leftImageUrl: string | null;
+  leftImageId?: string | null;
   leftLabel: string;
   rightImageUrl: string | null;
+  rightImageId?: string | null;
   rightLabel: string;
   direction?: 'horizontal' | 'vertical';
   fit?: 'contain' | 'cover';
@@ -55,7 +58,7 @@ export interface ListItem {
 export interface ListContent {
   style: 'bullet' | 'numbered';
   items: ListItem[];
-  intro?: string;   // optional paragraph rendered above the list (e.g. project aim)
+  intro?: string;
 }
 
 export interface StatItem {
@@ -70,6 +73,7 @@ export interface StatsContent {
 export interface QuestionContent {
   questionText: string;
   subtext: string;
+  label?: string;
 }
 
 export type SectionContent =
@@ -84,20 +88,37 @@ export type SectionContent =
 
 export interface SectionStyle {
   padding?: number;
-  fontSize?: number;                           // px — base body font size (8–28)
-  titleFontSize?: number;                      // px — section title size
-  titleFontFamily?: 'display' | 'body' | 'mono';
-  titleAlign?: 'left' | 'center' | 'right';   // title bar alignment
-  borderRadius?: number;                       // px — card corner radius
+  fontSize?: number;
+  titleFontSize?: number;
+  titlePaddingX?: number;
+  titleFontFamily?: 'display' | 'body' | 'serif' | 'sans' | 'mono' | 'condensed';
+  titleFontWeight?: 'normal' | 'semibold' | 'bold' | 'black';
+  titleFontStyle?: 'normal' | 'italic';
+  titleLetterSpacing?: number;
+  titleTransform?: 'none' | 'uppercase' | 'capitalize';
+  titleAlign?: 'left' | 'center' | 'right';
+  borderRadius?: number;
   textAlign?: 'left' | 'center' | 'right';
   fontWeight?: 'normal' | 'bold';
   fontStyle?: 'normal' | 'italic';
-  lineHeight?: number;                         // multiplier e.g. 1.4
+  lineHeight?: number;
+  letterSpacing?: number;
+  textTransform?: 'none' | 'uppercase' | 'capitalize';
   tableHeaderBgColor?: string;
   tableHeaderTextColor?: string;
   tableCellTextColor?: string;
   tableHeaderFontSize?: number;
   tableCellFontSize?: number;
+  tableVariant?: 'classic' | 'minimal' | 'zebra' | 'ruled' | 'presentation' | 'matrix';
+  tableDensity?: 'compact' | 'cozy' | 'roomy';
+  tableBorderStyle?: 'none' | 'subtle' | 'grid';
+  tableStriped?: boolean;
+  tableHeaderCase?: 'none' | 'uppercase' | 'capitalize';
+  titlePaddingY?: number;
+  listVariant?: 'compact' | 'badges' | 'minimal' | 'checklist' | 'timeline';
+  listDensity?: 'tight' | 'normal' | 'relaxed';
+  listMarkerSize?: number;
+  questionVariant?: 'statement' | 'spotlight' | 'compact' | 'framed' | 'side-accent';
   containerStyle?:
     | 'default'
     | 'none'
@@ -109,7 +130,9 @@ export interface SectionStyle {
     | 'glass'
     | 'accent-left'
     | 'elevated'
-    | 'soft-fill';
+    | 'soft-fill'
+    | 'bordered-pill'
+    | 'ghost';
   hideTitle?: boolean;
 }
 
@@ -120,41 +143,36 @@ export interface Section {
   title: string;
   content: SectionContent;
   style?: SectionStyle;
+  locked?: boolean;
 }
 
-export type HeaderLayout = 'academic' | 'minimal' | 'banner' | 'centered';
+export type HeaderLayout = 'academic' | 'minimal' | 'banner' | 'centered' | 'split' | 'modern' | 'corporate' | 'classic' | 'bold' | 'simple-line' | 'two-column' | 'logo-dominant' | 'text-dominant' | 'underline-accent' | 'framed' | 'pill-badge' | 'dark-band' | 'sidebar-left' | 'sidebar-right';
+
+export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error';
 
 export interface PosterState {
   id: string;
   selectedSectionId: string | null;
+  selectedSectionIds: string[];
   header: {
-    // Layout preset
     headerLayout: HeaderLayout;
-    // Logos
     universityLogoUrl: string | null;
     collegeLogoUrl: string | null;
-    // Core fields
     projectTitle: string;
     studentName: string;
     studentId: string;
     supervisorName: string;
     readerName: string;
-    // Extra fields
     department: string;
     institution: string;
     year: string;
-    // Visibility toggles
     showStudentInfo: boolean;
     showSupervisor: boolean;
     showReader: boolean;
     showDepartment: boolean;
-    // Title font size in px (replaces preset string)
     titleFontSize: number;
-    // Info-bar layout template
     infoLayout: 'inline' | 'stacked' | 'two-row' | 'grid';
-    // Header vertical padding in px
     headerPadding: number;
-    // Info-bar text size in px
     infoFontSize: number;
   };
   footer: {
@@ -163,10 +181,17 @@ export interface PosterState {
 
   theme: {
     primaryColor: string;
+    secondaryColor?: string;
     fontPairing: string;
     borderStyle: 'thin' | 'top-accent' | 'shadow' | 'filled-header';
     footerEnabled: boolean;
     rulerEnabled: boolean;
+    safeAreaEnabled?: boolean;
+    bleedAreaEnabled?: boolean;
+    gridOverlayEnabled?: boolean;
+    gridSize?: number;
+    snapToGrid?: boolean;
+    headerEnabled?: boolean;
   };
   layout: {
     width: number;
@@ -175,8 +200,18 @@ export interface PosterState {
   };
   sections: Section[];
 
+  // Persistence state
+  hydrated: boolean;
+  saveStatus: SaveStatus;
+  autoSaveEnabled: boolean;
+
   // Actions
+  setHydrated: (v: boolean) => void;
+  setSaveStatus: (status: SaveStatus) => void;
+  setAutoSaveEnabled: (v: boolean) => void;
   setSelectedSection: (id: string | null) => void;
+  setSelectedSections: (ids: string[]) => void;
+  toggleSectionSelection: (id: string) => void;
   updateHeader: (header: Partial<PosterState['header']>) => void;
   updateFooter: (footer: Partial<PosterState['footer']>) => void;
   updateTheme: (theme: Partial<PosterState['theme']>) => void;
@@ -185,7 +220,9 @@ export interface PosterState {
   updateSectionContent: (id: string, content: Partial<SectionContent>) => void;
   addSection: (section: Section) => void;
   deleteSection: (id: string) => void;
-
+  setSections: (sections: Section[]) => void;
+  resetPoster: () => void;
+  createBlankPoster: () => void;
 }
 
 const DEFAULT_TEXT_CONTENT: TextContent = {
@@ -212,25 +249,55 @@ export function defaultContentForType(type: SectionType): SectionContent {
         ],
       };
     case 'image':
-      return { imageUrl: null, caption: '', fit: 'contain' };
+      return { imageUrl: null, imageId: null, caption: '', fit: 'contain' };
     case 'split-image':
-      return { leftImageUrl: null, leftLabel: 'Initial Plan', rightImageUrl: null, rightLabel: 'Final Progress', direction: 'horizontal', fit: 'contain' };
+      return {
+        leftImageUrl: null,
+        leftImageId: null,
+        leftLabel: 'Initial Plan',
+        rightImageUrl: null,
+        rightImageId: null,
+        rightLabel: 'Final Progress',
+        direction: 'horizontal',
+        fit: 'contain',
+      };
     case 'list':
       return { style: 'bullet', intro: '', items: [{ text: 'First objective' }, { text: 'Second objective' }] };
     case 'stats':
       return { stats: [{ value: '95%', label: 'Test Coverage' }, { value: '4', label: 'Sprints' }] };
     case 'question':
-      return { questionText: 'What is the main research question of this study?', subtext: 'Detailed hypothesis or sub-question goes here.' };
+      return { questionText: 'What is the main research question of this study?', subtext: 'Detailed hypothesis or sub-question goes here.', label: 'Research Question' };
     default:
       return DEFAULT_TEXT_CONTENT;
   }
 }
 
+export const FONT_PAIRINGS = [
+  { id: 'classic-academic', name: 'Classic Academic', display: 'Lora', body: 'IBM Plex Sans' },
+  { id: 'modern', name: 'Modern', display: 'DM Serif Display', body: 'DM Sans' },
+  { id: 'clean', name: 'Clean', display: 'Playfair Display', body: 'Source Sans 3' },
+  { id: 'simple', name: 'Simple', display: 'Georgia', body: 'Arial' },
+  { id: 'poppins', name: 'Poppins', display: 'Poppins', body: 'Poppins' },
+  { id: 'inter', name: 'Inter', display: 'Inter', body: 'Inter' },
+  { id: 'merriweather', name: 'Merriweather', display: 'Merriweather', body: 'Merriweather' },
+  { id: 'mono', name: 'Mono', display: 'JetBrains Mono', body: 'JetBrains Mono' },
+  { id: 'roboto', name: 'Roboto', display: 'Roboto', body: 'Roboto' },
+  { id: 'opensans', name: 'Open Sans', display: 'Open Sans', body: 'Open Sans' },
+];
+
 const initialSections: Section[] = [];
 
-export const usePosterStore = create<PosterState>((set) => ({
-  id: 'unique-poster-id',
+const createDefaultState = (): Omit<PosterState, keyof {
+  setHydrated: unknown; setSaveStatus: unknown; setAutoSaveEnabled: unknown;
+  setSelectedSection: unknown; setSelectedSections: unknown; toggleSectionSelection: unknown;
+  updateHeader: unknown; updateFooter: unknown;
+  updateTheme: unknown; updateLayout: unknown; updateSection: unknown;
+  updateSectionContent: unknown; addSection: unknown; deleteSection: unknown;
+  setSections: unknown; resetPoster: unknown; createBlankPoster: unknown;
+}> => ({
+  id: `poster-${Date.now()}`,
   selectedSectionId: null,
+  selectedSectionIds: [],
   header: {
     headerLayout: 'academic' as HeaderLayout,
     universityLogoUrl: null,
@@ -255,22 +322,50 @@ export const usePosterStore = create<PosterState>((set) => ({
   footer: {
     text: 'Your Name | Student ID | Your Institution | Year',
   },
-
   theme: {
     primaryColor: '#0D7377',
+    secondaryColor: '#14b8a6',
     fontPairing: 'classic-academic',
     borderStyle: 'filled-header',
     footerEnabled: false,
     rulerEnabled: true,
+    safeAreaEnabled: false,
+    bleedAreaEnabled: false,
+    gridOverlayEnabled: false,
+    gridSize: 20,
+    snapToGrid: false,
+    headerEnabled: true,
   },
   layout: {
-    width: 841,  // A1 Landscape — 1px = 1mm
+    width: 841,
     height: 594,
     name: 'A1 Landscape',
   },
   sections: initialSections,
+  hydrated: false,
+  saveStatus: 'saved',
+  autoSaveEnabled: true,
+});
 
-  setSelectedSection: (id) => set({ selectedSectionId: id }),
+export const usePosterStore = create<PosterState>((set) => ({
+  ...createDefaultState(),
+
+  setHydrated: (v) => set({ hydrated: v }),
+  setSaveStatus: (status) => set({ saveStatus: status }),
+  setAutoSaveEnabled: (v) => set({ autoSaveEnabled: v }),
+
+  setSelectedSection: (id) => set({ selectedSectionId: id, selectedSectionIds: id ? [id] : [] }),
+  setSelectedSections: (ids) => set({ selectedSectionIds: ids, selectedSectionId: ids.length === 1 ? ids[0] : null }),
+  toggleSectionSelection: (id) =>
+    set((state) => {
+      const selectedSectionIds = state.selectedSectionIds.includes(id)
+        ? state.selectedSectionIds.filter((selectedId) => selectedId !== id)
+        : [...state.selectedSectionIds, id];
+      return {
+        selectedSectionIds,
+        selectedSectionId: selectedSectionIds.length === 1 ? selectedSectionIds[0] : null,
+      };
+    }),
   updateHeader: (header) => set((state) => ({ header: { ...state.header, ...header } })),
   updateFooter: (footer) => set((state) => ({ footer: { ...state.footer, ...footer } })),
   updateTheme: (theme) => set((state) => ({ theme: { ...state.theme, ...theme } })),
@@ -290,6 +385,43 @@ export const usePosterStore = create<PosterState>((set) => ({
     set((state) => ({
       sections: state.sections.filter((s) => s.id !== id),
       selectedSectionId: state.selectedSectionId === id ? null : state.selectedSectionId,
+      selectedSectionIds: state.selectedSectionIds.filter((selectedId) => selectedId !== id),
     })),
-
+  setSections: (sections) => set({ sections }),
+  resetPoster: () => set({ ...createDefaultState(), hydrated: true }),
+  createBlankPoster: () =>
+    set({
+      ...createDefaultState(),
+      id: `poster-${Date.now()}`,
+      header: {
+        headerLayout: 'academic' as HeaderLayout,
+        universityLogoUrl: null,
+        collegeLogoUrl: null,
+        projectTitle: '',
+        studentName: '',
+        studentId: '',
+        supervisorName: '',
+        readerName: '',
+        department: '',
+        institution: '',
+        year: new Date().getFullYear().toString(),
+        showStudentInfo: true,
+        showSupervisor: true,
+        showReader: true,
+        showDepartment: false,
+        titleFontSize: 32,
+        infoLayout: 'inline' as const,
+        headerPadding: 12,
+        infoFontSize: 12,
+      },
+      sections: [],
+      selectedSectionId: null,
+      selectedSectionIds: [],
+      theme: {
+        ...createDefaultState().theme,
+        footerEnabled: false,
+        headerEnabled: false,
+      },
+      hydrated: true,
+    }),
 }));

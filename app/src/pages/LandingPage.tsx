@@ -1,182 +1,311 @@
+/*
+ * What does this file do?
+ * Renders the modern scrollable product landing page for PosterGen.
+ * Methods/functions in this file: LandingPage.
+ * Last modification: 2026-05-28, Thursday.
+ */
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Layout, Upload, Palette, Download, ArrowRight, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Download,
+  FileJson,
+  HelpCircle,
+  Layout,
+  Layers,
+  Moon,
+  MousePointer2,
+  Palette,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Upload,
+  Wand2,
+} from 'lucide-react';
+import AppGuideModal from '../components/layout/AppGuideModal';
+import { useHistoryStore } from '../store/useHistoryStore';
+import { usePosterStore } from '../store/usePosterStore';
+import { useThemeStore } from '../store/useThemeStore';
 
-const FEATURES = [
+const WORKFLOW = [
   {
-    icon: <Layout size={22} />,
-    title: 'Drag & Resize Grid',
-    desc: 'Move and resize sections on a live 3-column grid. Your layout updates in real time.',
+    icon: <Layout size={18} />,
+    title: 'Choose a structure',
+    desc: 'Start with a poster template, import an AI JSON draft, or open a clean A1 board.',
   },
   {
-    icon: <Upload size={22} />,
-    title: 'Image & Diagram Upload',
-    desc: 'Upload SVG, PNG, or JPG files directly into any section for use case diagrams, Gantt charts, and more.',
+    icon: <MousePointer2 size={18} />,
+    title: 'Edit visually',
+    desc: 'Move sections, resize cards, tune typography, and upload diagrams directly on canvas.',
   },
   {
-    icon: <Palette size={22} />,
-    title: 'Full Theme Control',
-    desc: 'Choose from 6 colour themes, 4 font pairings, and multiple card styles to match your department.',
-  },
-  {
-    icon: <Sparkles size={22} />,
-    title: 'AI Prompt Helper',
-    desc: 'Get ready-made prompts for every section — paste into ChatGPT or Claude for instant content.',
-  },
-  {
-    icon: <Download size={22} />,
-    title: 'A1 PDF Export',
-    desc: 'Download print-ready A1 poster (841×594mm landscape) directly from your browser.',
-  },
-  {
-    icon: <Layout size={22} />,
-    title: '7 Section Types',
-    desc: 'Text, Table, Flow, Image, Split Image, List, and Stats — an appropriate type for every academic need.',
+    icon: <Download size={18} />,
+    title: 'Review and export',
+    desc: 'Use print preview, keep a JSON backup, then export the final A1 poster.',
   },
 ];
 
-const LandingPage: React.FC = () => {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white font-sans">
+const FEATURES = [
+  { icon: <Wand2 size={18} />, title: 'AI draft flow', desc: 'Structured prompt and JSON import for fast first drafts.' },
+  { icon: <Upload size={18} />, title: 'Diagram slots', desc: 'Upload architecture, workflow, and result images into sections.' },
+  { icon: <Palette size={18} />, title: 'Poster styling', desc: 'Control cards, tables, titles, colors, fonts, and layout density.' },
+  { icon: <Layers size={18} />, title: 'Templates', desc: 'Start from academic, engineering, data, and business layouts.' },
+  { icon: <FileJson size={18} />, title: 'Portable drafts', desc: 'Download JSON backups when moving work between sessions.' },
+  { icon: <ShieldCheck size={18} />, title: 'Local first', desc: 'Draft work stays in the browser unless you export it.' },
+];
 
-      {/* Nav */}
-      <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center">
-            <Layout size={14} />
+const LandingPage: React.FC = () => {
+  const { editorTheme, toggleTheme } = useThemeStore();
+  const [showGuide, setShowGuide] = React.useState(false);
+  const isDark = editorTheme === 'dark';
+
+  const colors = {
+    page: isDark ? '#0b1120' : '#f8fafc',
+    surface: isDark ? '#111827' : '#ffffff',
+    surfaceAlt: isDark ? '#172033' : '#eef2ff',
+    card: isDark ? '#151f32' : '#ffffff',
+    border: isDark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(15, 23, 42, 0.10)',
+    text: isDark ? '#f8fafc' : '#0f172a',
+    muted: isDark ? 'rgba(226, 232, 240, 0.70)' : 'rgba(51, 65, 85, 0.75)',
+    faint: isDark ? 'rgba(226, 232, 240, 0.50)' : 'rgba(71, 85, 105, 0.62)',
+    accent: '#4f46e5',
+    teal: '#0d9488',
+  };
+
+  const startBlank = () => {
+    usePosterStore.getState().createBlankPoster();
+    useHistoryStore.getState().clear();
+  };
+
+  const cardStyle: React.CSSProperties = {
+    background: colors.card,
+    border: `1px solid ${colors.border}`,
+    boxShadow: isDark ? '0 18px 45px rgba(0,0,0,0.28)' : '0 18px 45px rgba(15,23,42,0.08)',
+  };
+
+  return (
+    <div
+      className="h-screen overflow-y-auto overflow-x-hidden"
+      style={{ background: colors.page, color: colors.text }}
+    >
+      <nav
+        className="sticky top-0 z-50 border-b px-4 py-3 sm:px-6"
+        style={{
+          background: isDark ? 'rgba(11, 17, 32, 0.94)' : 'rgba(248, 250, 252, 0.94)',
+          borderColor: colors.border,
+          backdropFilter: 'blur(14px)',
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl text-white" style={{ background: colors.accent }}>
+              <Layout size={17} />
+            </span>
+            <span className="text-base font-bold">PosterGen</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowGuide(true)}
+              className="hidden h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors hover:bg-black/5 sm:flex"
+              style={{ borderColor: colors.border, color: colors.muted }}
+            >
+              <HelpCircle size={14} />
+              Guide
+            </button>
+            <button
+              onClick={toggleTheme}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border transition-colors hover:bg-black/5"
+              style={{ borderColor: colors.border, color: colors.muted }}
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+            <Link
+              to="/templates"
+              className="hidden h-9 items-center rounded-xl border px-3 text-xs font-semibold transition-colors hover:bg-black/5 sm:flex"
+              style={{ borderColor: colors.border, color: colors.muted }}
+            >
+              Templates
+            </Link>
+            <Link
+              to="/builder"
+              onClick={startBlank}
+              className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-bold text-white transition-transform hover:-translate-y-0.5"
+              style={{ background: colors.accent }}
+            >
+              Open Builder
+              <ArrowRight size={14} />
+            </Link>
           </div>
-          <span className="font-bold text-lg">PosterGen</span>
         </div>
-        <Link
-          to="/builder"
-          className="px-4 py-2 bg-white/10 hover:bg-white/20 transition-colors rounded-lg text-sm font-semibold backdrop-blur-sm"
-        >
-          Open Builder
-        </Link>
       </nav>
 
-      {/* Hero */}
-      <div className="max-w-5xl mx-auto px-6 pt-16 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-full text-indigo-300 text-xs font-semibold mb-6 backdrop-blur-sm">
-          <Sparkles size={12} />
-          Academic Poster Generator · A1 Print Ready
-        </div>
-        <h1 className="text-6xl font-black leading-tight tracking-tight mb-6">
-          Create your academic<br />
-          <span className="bg-gradient-to-r from-indigo-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-            poster in minutes
-          </span>
-        </h1>
-        <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Fill in your content, drag your sections into place, upload your diagrams, and download a print-ready A1 poster. No design experience required.
-        </p>
-        <div className="flex items-center justify-center gap-4">
-          <Link
-            to="/builder"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 transition-all rounded-xl font-bold text-lg shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105"
-          >
-            Start Building
-            <ArrowRight size={18} />
-          </Link>
-          <a
-            href="#features"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/20 transition-colors rounded-xl font-semibold text-lg backdrop-blur-sm"
-          >
-            See Features
-          </a>
-        </div>
-      </div>
-
-      {/* Preview mockup */}
-      <div className="max-w-5xl mx-auto px-6 mb-24">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-3 backdrop-blur-sm shadow-2xl">
-          <div className="bg-neutral-900 rounded-xl overflow-hidden">
-            {/* Fake browser bar */}
-            <div className="flex items-center gap-1.5 px-4 py-3 bg-neutral-800 border-b border-white/5">
-              <div className="w-3 h-3 rounded-full bg-red-500/70" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-              <div className="w-3 h-3 rounded-full bg-green-500/70" />
-              <div className="flex-1 mx-4 bg-neutral-700 rounded-md h-5 text-[9px] text-neutral-400 flex items-center px-3">
-                localhost:5173/builder
-              </div>
+      <main>
+        <section className="mx-auto grid max-w-7xl gap-10 px-4 pb-14 pt-12 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:pb-20 lg:pt-16">
+          <div>
+            <div
+              className="mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest"
+              style={{ background: colors.surfaceAlt, borderColor: colors.border, color: colors.accent }}
+            >
+              <Sparkles size={13} />
+              A1 academic poster builder
             </div>
-            {/* Two-panel preview */}
-            <div className="flex h-48">
-              <div className="w-[28%] bg-neutral-800 border-r border-white/5 p-3 space-y-2">
-                <div className="h-3 bg-indigo-500/40 rounded w-3/4" />
-                <div className="h-2 bg-white/10 rounded w-full" />
-                <div className="h-2 bg-white/10 rounded w-4/5" />
-                <div className="h-2 bg-white/10 rounded w-full" />
-                <div className="mt-4 space-y-1.5">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-6 bg-white/5 rounded-md border border-white/10" />
-                  ))}
+            <h1 className="max-w-2xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
+              Build a polished poster without fighting the layout.
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-8" style={{ color: colors.muted }}>
+              PosterGen helps students turn reports, diagrams, and research notes into a clean A1 poster with templates,
+              AI-assisted content, direct canvas editing, and print-ready export.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link
+                to="/templates"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
+                style={{ background: colors.accent }}
+              >
+                Start with Templates
+                <ArrowRight size={16} />
+              </Link>
+              <button
+                onClick={() => setShowGuide(true)}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-bold transition-colors hover:bg-black/5"
+                style={{ borderColor: colors.border, color: colors.text, background: colors.surface }}
+              >
+                View Guide
+                <HelpCircle size={16} />
+              </button>
+            </div>
+            <div className="mt-7 grid max-w-xl grid-cols-3 gap-3">
+              {['Templates', 'AI JSON', 'A1 PDF'].map((item) => (
+                <div key={item} className="rounded-xl border px-3 py-3 text-center" style={{ ...cardStyle, boxShadow: 'none' }}>
+                  <p className="text-xs font-bold">{item}</p>
                 </div>
-              </div>
-              <div className="flex-1 bg-neutral-900 p-3">
-                <div className="bg-white/5 rounded-lg h-full border border-white/10 p-2 flex flex-col gap-2">
-                  <div className="h-8 rounded-md border-b border-indigo-500/30 flex items-center px-2 gap-3">
-                    <div className="w-6 h-6 rounded bg-white/10" />
-                    <div className="flex-1 h-2 bg-white/20 rounded" />
-                    <div className="w-6 h-6 rounded bg-white/10" />
-                  </div>
-                  <div className="flex-1 grid grid-cols-3 gap-1.5">
-                    {[...Array(6)].map((_, i) => (
-                      <div key={i} className="bg-white/5 rounded border border-white/10 p-1">
-                        <div className="h-2 bg-indigo-500/30 rounded mb-1" />
-                        <div className="space-y-0.5">
-                          <div className="h-1 bg-white/10 rounded" />
-                          <div className="h-1 bg-white/10 rounded w-4/5" />
-                          <div className="h-1 bg-white/10 rounded w-3/5" />
-                        </div>
-                      </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="rounded-3xl border p-3" style={cardStyle}>
+              <div className="overflow-hidden rounded-2xl border bg-white" style={{ borderColor: 'rgba(15,23,42,0.10)' }}>
+                <div className="flex h-10 items-center gap-2 border-b bg-slate-100 px-4" style={{ borderColor: 'rgba(15,23,42,0.08)' }}>
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  <span className="ml-2 rounded-md bg-white px-3 py-1 text-[10px] font-semibold text-slate-500">
+                    PosterGen workspace
+                  </span>
+                </div>
+                <div className="grid gap-2 bg-slate-200 p-4 lg:grid-cols-[46px_1fr_118px]">
+                  <div className="hidden flex-col gap-2 rounded-xl bg-slate-900 p-2 lg:flex">
+                    {[colors.accent, colors.teal, '#eab308', '#64748b'].map((color) => (
+                      <span key={color} className="h-8 rounded-lg" style={{ background: color }} />
                     ))}
+                  </div>
+                  <div className="rounded-xl bg-white p-3 shadow-xl">
+                    <div className="mb-3 flex items-center gap-2 border-b pb-3">
+                      <span className="h-10 w-10 rounded-lg border bg-slate-50" />
+                      <div className="min-w-0 flex-1">
+                        <div className="mx-auto h-3 w-3/4 rounded bg-slate-800" />
+                        <div className="mx-auto mt-2 h-2 w-1/2 rounded bg-teal-200" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[0, 1, 2, 3, 4, 5].map((item) => (
+                        <div key={item} className="min-h-20 rounded-lg border bg-slate-50 p-2" style={{ borderColor: item % 2 ? '#bfdbfe' : '#99f6e4' }}>
+                          <div className="mb-2 h-2 w-2/3 rounded bg-teal-600" />
+                          <div className="space-y-1">
+                            <div className="h-1.5 rounded bg-slate-200" />
+                            <div className="h-1.5 w-4/5 rounded bg-slate-200" />
+                            <div className="h-1.5 w-2/3 rounded bg-slate-200" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="hidden rounded-xl bg-white p-3 shadow-lg lg:block">
+                    <p className="text-xs font-bold text-slate-800">Section tools</p>
+                    <div className="mt-3 space-y-2">
+                      {[0, 1, 2, 3].map((item) => (
+                        <div key={item} className="h-8 rounded-lg bg-slate-100" />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* Features */}
-      <div id="features" className="max-w-5xl mx-auto px-6 pb-24">
-        <h2 className="text-3xl font-bold text-center mb-12">Everything you need to present your project</h2>
-        <div className="grid grid-cols-3 gap-6">
-          {FEATURES.map((f, i) => (
-            <div
-              key={i}
-              className="p-5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors backdrop-blur-sm"
-            >
-              <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400 mb-3">
-                {f.icon}
-              </div>
-              <h3 className="font-bold text-sm mb-2">{f.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
+        <section className="border-y px-4 py-12 sm:px-6" style={{ background: colors.surface, borderColor: colors.border }}>
+          <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-3">
+            {WORKFLOW.map((step, index) => (
+              <article key={step.title} className="rounded-2xl border p-5" style={cardStyle}>
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: colors.surfaceAlt, color: colors.accent }}>
+                    {step.icon}
+                  </span>
+                  <span className="text-xs font-black" style={{ color: colors.faint }}>{String(index + 1).padStart(2, '0')}</span>
+                </div>
+                <h2 className="text-base font-bold">{step.title}</h2>
+                <p className="mt-2 text-sm leading-6" style={{ color: colors.muted }}>{step.desc}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+          <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: colors.accent }}>Product features</p>
+              <h2 className="mt-2 text-3xl font-black">Everything needed for final poster delivery</h2>
             </div>
-          ))}
-        </div>
-      </div>
+            <Link to="/templates" className="inline-flex items-center gap-2 text-sm font-bold" style={{ color: colors.accent }}>
+              Browse templates
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((feature) => (
+              <article key={feature.title} className="rounded-2xl border p-5" style={{ ...cardStyle, boxShadow: 'none' }}>
+                <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: colors.surfaceAlt, color: colors.teal }}>
+                  {feature.icon}
+                </span>
+                <h3 className="text-sm font-bold">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-6" style={{ color: colors.muted }}>{feature.desc}</p>
+              </article>
+            ))}
+          </div>
+        </section>
 
-      {/* CTA */}
-      <div className="max-w-2xl mx-auto px-6 pb-24 text-center">
-        <div className="p-10 bg-indigo-600/20 border border-indigo-500/30 rounded-2xl backdrop-blur-sm">
-          <h2 className="text-3xl font-bold mb-4">Ready to build your poster?</h2>
-          <p className="text-slate-400 mb-6">No account needed. Works entirely in your browser.</p>
-          <Link
-            to="/builder"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 transition-all rounded-xl font-bold text-lg shadow-lg shadow-indigo-500/25"
-          >
-            Open Poster Builder
-            <ArrowRight size={18} />
-          </Link>
-        </div>
-      </div>
+        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+          <div className="rounded-3xl border p-6 sm:p-8" style={{ ...cardStyle, background: colors.surfaceAlt }}>
+            <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+              <div>
+                <h2 className="text-2xl font-black">Ready to turn your project into a poster?</h2>
+                <p className="mt-2 text-sm leading-6" style={{ color: colors.muted }}>
+                  Start with a proven layout, then refine the details inside the builder.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link to="/templates" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white" style={{ background: colors.accent }}>
+                  Choose Template
+                  <ArrowRight size={15} />
+                </Link>
+                <Link to="/builder" onClick={startBlank} className="inline-flex h-11 items-center justify-center rounded-xl border px-4 text-sm font-bold" style={{ background: colors.surface, borderColor: colors.border }}>
+                  Blank Canvas
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
 
-      {/* Footer */}
-      <div className="border-t border-white/10 py-6 text-center text-xs text-slate-500">
-        Academic Poster Generator · Built for students · No data is stored
-      </div>
+      <footer className="border-t px-4 py-6 text-center sm:px-6" style={{ background: colors.surface, borderColor: colors.border }}>
+        <p className="text-sm font-bold" style={{ color: colors.text }}>Made to make Life Easier</p>
+        <p className="mt-1 text-xs" style={{ color: colors.faint }}>PosterGen</p>
+      </footer>
+
+      {showGuide && <AppGuideModal onClose={() => setShowGuide(false)} />}
     </div>
   );
 };

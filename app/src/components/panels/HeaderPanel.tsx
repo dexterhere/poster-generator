@@ -1,12 +1,27 @@
 import React, { useRef } from 'react';
 import { usePosterStore, type HeaderLayout } from '../../store/usePosterStore';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, X } from 'lucide-react';
 
 const LAYOUTS: { id: HeaderLayout; label: string; description: string }[] = [
-  { id: 'academic',  label: 'Academic',  description: 'Logos on sides, title + info centred' },
-  { id: 'banner',    label: 'Banner',    description: 'Solid colour background, white text' },
-  { id: 'centered',  label: 'Centred',   description: 'Logos above, title below' },
-  { id: 'minimal',   label: 'Minimal',   description: 'Title only, no logos' },
+  { id: 'academic', label: 'Academic', description: 'Logos on sides with centered title' },
+  { id: 'minimal', label: 'Minimal', description: 'Title and info only' },
+  { id: 'banner', label: 'Banner', description: 'Solid band with logos' },
+  { id: 'centered', label: 'Centered', description: 'Logos above title' },
+  { id: 'split', label: 'Split', description: 'Title left, identity right' },
+  { id: 'modern', label: 'Modern', description: 'Clean accent line' },
+  { id: 'corporate', label: 'Corporate', description: 'Structured title block' },
+  { id: 'classic', label: 'Classic', description: 'Traditional serif frame' },
+  { id: 'bold', label: 'Bold', description: 'Large title emphasis' },
+  { id: 'simple-line', label: 'Line', description: 'Compact line header' },
+  { id: 'two-column', label: '2 Column', description: 'Logo/title and metadata columns' },
+  { id: 'logo-dominant', label: 'Logo Lead', description: 'Larger logo row' },
+  { id: 'text-dominant', label: 'Text Lead', description: 'Maximum title width' },
+  { id: 'underline-accent', label: 'Underline', description: 'Accent underline style' },
+  { id: 'framed', label: 'Framed', description: 'Inset frame around header' },
+  { id: 'pill-badge', label: 'Badge', description: 'Rounded metadata badge' },
+  { id: 'dark-band', label: 'Dark Band', description: 'High contrast band' },
+  { id: 'sidebar-left', label: 'Left Rail', description: 'Left vertical accent' },
+  { id: 'sidebar-right', label: 'Right Rail', description: 'Right vertical accent' },
 ];
 
 type InfoLayout = 'inline' | 'stacked' | 'two-row' | 'grid';
@@ -17,7 +32,7 @@ const INFO_LAYOUTS: { id: InfoLayout; label: string; description: string; previe
     label: 'Inline',
     description: 'All fields in one row',
     preview: (
-      <div className="text-[8px] leading-tight text-center truncate opacity-70">
+      <div className="text-[8px] leading-tight text-center truncate opacity-60">
         Name · Supervisor · Reader
       </div>
     ),
@@ -27,7 +42,7 @@ const INFO_LAYOUTS: { id: InfoLayout; label: string; description: string; previe
     label: 'Stacked',
     description: 'Each field on its own row',
     preview: (
-      <div className="text-[7px] leading-snug opacity-70 space-y-px">
+      <div className="text-[7px] leading-snug opacity-60 space-y-px">
         <div className="flex gap-1"><span className="font-bold">STUDENT:</span><span>Name (ID)</span></div>
         <div className="flex gap-1"><span className="font-bold">SUPERVISOR:</span><span>Name</span></div>
         <div className="flex gap-1"><span className="font-bold">READER:</span><span>Name</span></div>
@@ -39,7 +54,7 @@ const INFO_LAYOUTS: { id: InfoLayout; label: string; description: string; previe
     label: '2-Row',
     description: 'Name on top, others below',
     preview: (
-      <div className="text-[7px] leading-snug opacity-70 text-center space-y-0.5">
+      <div className="text-[7px] leading-snug opacity-60 text-center space-y-0.5">
         <div className="font-semibold">Name (Student ID)</div>
         <div className="text-[6px]">Supervisor · Reader</div>
       </div>
@@ -50,7 +65,7 @@ const INFO_LAYOUTS: { id: InfoLayout; label: string; description: string; previe
     label: 'Grid',
     description: '2-column label / value',
     preview: (
-      <div className="text-[7px] leading-snug opacity-70 grid gap-x-2" style={{ gridTemplateColumns: 'auto 1fr' }}>
+      <div className="text-[7px] leading-snug opacity-60 grid gap-x-2" style={{ gridTemplateColumns: 'auto 1fr' }}>
         <span className="font-bold">STUDENT</span><span>Name</span>
         <span className="font-bold">SUPERVISOR</span><span>Name</span>
         <span className="font-bold">READER</span><span>Name</span>
@@ -59,13 +74,27 @@ const INFO_LAYOUTS: { id: InfoLayout; label: string; description: string; previe
   },
 ];
 
+const HeaderFieldToggle: React.FC<{ label: string; value: boolean; onChange: (v: boolean) => void }> = ({ label, value, onChange }) => (
+  <button
+    onClick={() => onChange(!value)}
+    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all ${
+      value
+        ? 'border-indigo-400/30 bg-indigo-500/15 text-indigo-300'
+        : 'border-white/10 bg-white/5 text-white/30 line-through'
+    }`}
+  >
+    {value ? <Eye size={11} /> : <EyeOff size={11} />}
+    {label}
+  </button>
+);
+
 const HeaderPanel: React.FC = () => {
-  const { header, updateHeader } = usePosterStore();
+  const { header, theme, updateHeader, updateTheme } = usePosterStore();
   const uniLogoRef  = useRef<HTMLInputElement>(null);
   const collLogoRef = useRef<HTMLInputElement>(null);
 
-  const inputClass = "w-full border border-neutral-200 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all";
-  const labelClass = "block text-[11px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5";
+  const inputClass = "glass-input w-full rounded-lg px-3 py-2 text-sm";
+  const labelClass = "block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5";
 
   const handleLogo = (side: 'university' | 'college', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,20 +108,6 @@ const HeaderPanel: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const Toggle: React.FC<{ label: string; value: boolean; onChange: (v: boolean) => void }> = ({ label, value, onChange }) => (
-    <button
-      onClick={() => onChange(!value)}
-      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all ${
-        value
-          ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-          : 'border-neutral-200 bg-white text-neutral-400 line-through'
-      }`}
-    >
-      {value ? <Eye size={11} /> : <EyeOff size={11} />}
-      {label}
-    </button>
-  );
-
   const titleFontSize  = header.titleFontSize  ?? 32;
   const headerPadding  = header.headerPadding  ?? 12;
   const infoFontSize   = header.infoFontSize   ?? 12;
@@ -100,9 +115,24 @@ const HeaderPanel: React.FC = () => {
 
   return (
     <div className="space-y-5 p-4">
+      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+        <div>
+          <p className="text-xs font-semibold text-white/80">Poster Header</p>
+          <p className="text-[10px] text-white/35">Enable this only when your poster needs a title block.</p>
+        </div>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={theme.headerEnabled !== false}
+            onChange={(e) => updateTheme({ headerEnabled: e.target.checked })}
+            className="sr-only peer"
+          />
+          <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500/70" />
+        </label>
+      </div>
 
       {/* Layout presets */}
-      <div>
+      <div className={theme.headerEnabled === false ? 'opacity-45 pointer-events-none' : ''}>
         <label className={labelClass}>Header Layout</label>
         <div className="grid grid-cols-2 gap-2">
           {LAYOUTS.map((l) => (
@@ -110,14 +140,14 @@ const HeaderPanel: React.FC = () => {
               key={l.id}
               onClick={() => updateHeader({ headerLayout: l.id })}
               title={l.description}
-              className={`flex flex-col items-start px-3 py-2 rounded-lg border-2 text-left transition-all ${
+              className={`flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-all ${
                 header.headerLayout === l.id
-                  ? 'border-indigo-500 bg-indigo-50'
-                  : 'border-neutral-200 hover:border-neutral-300'
+                  ? 'border-indigo-400/40 bg-indigo-500/10'
+                  : 'border-white/10 hover:border-white/20 hover:bg-white/5'
               }`}
             >
-              <span className="text-sm font-semibold text-neutral-800">{l.label}</span>
-              <span className="text-[9px] text-neutral-400 leading-tight mt-0.5">{l.description}</span>
+              <span className="text-sm font-semibold text-white/80">{l.label}</span>
+              <span className="text-[9px] text-white/40 leading-tight mt-0.5">{l.description}</span>
             </button>
           ))}
         </div>
@@ -127,42 +157,39 @@ const HeaderPanel: React.FC = () => {
       <div>
         <label className={labelClass}>Header Sizing</label>
         <div className="space-y-2">
-          {/* Title font size */}
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-neutral-400 uppercase w-16 shrink-0">Title</span>
+            <span className="text-[9px] font-semibold text-white/30 uppercase w-16 shrink-0">Title</span>
             <input
               type="range" min="16" max="80" step="1"
               value={titleFontSize}
               onChange={(e) => updateHeader({ titleFontSize: parseInt(e.target.value) })}
-              className="flex-1 accent-indigo-600 h-1.5"
+              className="flex-1 accent-indigo-500 h-1.5 bg-white/10 rounded-lg appearance-none"
             />
-            <span className="text-xs text-neutral-700 font-semibold w-10 text-right tabular-nums shrink-0">
+            <span className="text-xs text-white/60 font-semibold w-10 text-right tabular-nums shrink-0">
               {titleFontSize}px
             </span>
           </div>
-          {/* Header vertical padding */}
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-neutral-400 uppercase w-16 shrink-0">Height</span>
+            <span className="text-[9px] font-semibold text-white/30 uppercase w-16 shrink-0">Height</span>
             <input
               type="range" min="4" max="48" step="2"
               value={headerPadding}
               onChange={(e) => updateHeader({ headerPadding: parseInt(e.target.value) })}
-              className="flex-1 accent-indigo-600 h-1.5"
+              className="flex-1 accent-indigo-500 h-1.5 bg-white/10 rounded-lg appearance-none"
             />
-            <span className="text-xs text-neutral-700 font-semibold w-10 text-right tabular-nums shrink-0">
+            <span className="text-xs text-white/60 font-semibold w-10 text-right tabular-nums shrink-0">
               {headerPadding}px
             </span>
           </div>
-          {/* Info text size */}
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-neutral-400 uppercase w-16 shrink-0">Info text</span>
+            <span className="text-[9px] font-semibold text-white/30 uppercase w-16 shrink-0">Info text</span>
             <input
               type="range" min="8" max="18" step="1"
               value={infoFontSize}
               onChange={(e) => updateHeader({ infoFontSize: parseInt(e.target.value) })}
-              className="flex-1 accent-indigo-600 h-1.5"
+              className="flex-1 accent-indigo-500 h-1.5 bg-white/10 rounded-lg appearance-none"
             />
-            <span className="text-xs text-neutral-700 font-semibold w-10 text-right tabular-nums shrink-0">
+            <span className="text-xs text-white/60 font-semibold w-10 text-right tabular-nums shrink-0">
               {infoFontSize}px
             </span>
           </div>
@@ -177,42 +204,40 @@ const HeaderPanel: React.FC = () => {
             <button
               key={l.id}
               onClick={() => updateHeader({ infoLayout: l.id })}
-              className={`flex flex-col items-start px-2.5 py-2 rounded-lg border-2 text-left transition-all min-h-[56px] ${
+              className={`flex flex-col items-start px-2.5 py-2 rounded-lg border text-left transition-all min-h-[56px] ${
                 infoLayout === l.id
-                  ? 'border-indigo-500 bg-indigo-50'
-                  : 'border-neutral-200 hover:border-neutral-300'
+                  ? 'border-indigo-400/40 bg-indigo-500/10'
+                  : 'border-white/10 hover:border-white/20 hover:bg-white/5'
               }`}
             >
-              <span className="text-[10px] font-bold text-neutral-700 mb-1">{l.label}</span>
+              <span className="text-[10px] font-bold text-white/70 mb-1">{l.label}</span>
               {l.preview}
             </button>
           ))}
         </div>
-        <p className="text-[9px] text-neutral-400 mt-1.5 leading-snug">
-          {INFO_LAYOUTS.find((l) => l.id === infoLayout)?.description}
-        </p>
       </div>
 
-      {/* Logo uploads — hidden for minimal layout */}
+      {/* Logo uploads */}
       {header.headerLayout !== 'minimal' && (
         <div>
           <label className={labelClass}>Logos</label>
           <div className="grid grid-cols-2 gap-3">
-            {/* University logo */}
             <div>
-              <p className="text-[9px] text-neutral-400 font-bold uppercase mb-1">University</p>
+              <p className="text-[9px] text-white/30 font-semibold uppercase mb-1">University</p>
               {header.universityLogoUrl ? (
                 <div className="relative">
-                  <img src={header.universityLogoUrl} alt="University Logo" className="w-full h-14 object-contain border border-neutral-200 rounded-md bg-neutral-50" />
+                  <img src={header.universityLogoUrl} alt="University Logo" className="w-full h-14 object-contain border border-white/10 rounded-lg bg-white/5" />
                   <button
                     onClick={() => updateHeader({ universityLogoUrl: null })}
-                    className="absolute top-1 right-1 bg-red-500 text-white text-[9px] px-1 py-0.5 rounded leading-none"
-                  >×</button>
+                    className="absolute top-1 right-1 bg-red-500/80 text-white p-0.5 rounded leading-none hover:bg-red-500 transition-colors"
+                  >
+                    <X size={10} />
+                  </button>
                 </div>
               ) : (
                 <button
                   onClick={() => uniLogoRef.current?.click()}
-                  className="w-full h-14 border-2 border-dashed border-neutral-300 rounded-md text-[10px] text-neutral-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
+                  className="w-full h-14 border-2 border-dashed border-white/10 rounded-lg text-[10px] text-white/30 hover:border-indigo-400/40 hover:text-indigo-300 transition-colors"
                 >
                   + Upload
                 </button>
@@ -220,21 +245,22 @@ const HeaderPanel: React.FC = () => {
               <input ref={uniLogoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleLogo('university', e)} />
             </div>
 
-            {/* College logo */}
             <div>
-              <p className="text-[9px] text-neutral-400 font-bold uppercase mb-1">College</p>
+              <p className="text-[9px] text-white/30 font-semibold uppercase mb-1">College</p>
               {header.collegeLogoUrl ? (
                 <div className="relative">
-                  <img src={header.collegeLogoUrl} alt="College Logo" className="w-full h-14 object-contain border border-neutral-200 rounded-md bg-neutral-50" />
+                  <img src={header.collegeLogoUrl} alt="College Logo" className="w-full h-14 object-contain border border-white/10 rounded-lg bg-white/5" />
                   <button
                     onClick={() => updateHeader({ collegeLogoUrl: null })}
-                    className="absolute top-1 right-1 bg-red-500 text-white text-[9px] px-1 py-0.5 rounded leading-none"
-                  >×</button>
+                    className="absolute top-1 right-1 bg-red-500/80 text-white p-0.5 rounded leading-none hover:bg-red-500 transition-colors"
+                  >
+                    <X size={10} />
+                  </button>
                 </div>
               ) : (
                 <button
                   onClick={() => collLogoRef.current?.click()}
-                  className="w-full h-14 border-2 border-dashed border-neutral-300 rounded-md text-[10px] text-neutral-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
+                  className="w-full h-14 border-2 border-dashed border-white/10 rounded-lg text-[10px] text-white/30 hover:border-indigo-400/40 hover:text-indigo-300 transition-colors"
                 >
                   + Upload
                 </button>
@@ -261,10 +287,10 @@ const HeaderPanel: React.FC = () => {
       <div>
         <label className={labelClass}>Show / Hide Fields</label>
         <div className="flex flex-wrap gap-2">
-          <Toggle label="Student Info" value={header.showStudentInfo} onChange={(v) => updateHeader({ showStudentInfo: v })} />
-          <Toggle label="Supervisor"   value={header.showSupervisor}  onChange={(v) => updateHeader({ showSupervisor: v })} />
-          <Toggle label="Reader"       value={header.showReader}      onChange={(v) => updateHeader({ showReader: v })} />
-          <Toggle label="Department"   value={header.showDepartment}  onChange={(v) => updateHeader({ showDepartment: v })} />
+          <HeaderFieldToggle label="Student Info" value={header.showStudentInfo} onChange={(v) => updateHeader({ showStudentInfo: v })} />
+          <HeaderFieldToggle label="Supervisor"   value={header.showSupervisor}  onChange={(v) => updateHeader({ showSupervisor: v })} />
+          <HeaderFieldToggle label="Reader"       value={header.showReader}      onChange={(v) => updateHeader({ showReader: v })} />
+          <HeaderFieldToggle label="Department"   value={header.showDepartment}  onChange={(v) => updateHeader({ showDepartment: v })} />
         </div>
       </div>
 
@@ -299,7 +325,7 @@ const HeaderPanel: React.FC = () => {
       </div>
 
       {/* Extra fields */}
-      <div className="space-y-3 pt-2 border-t border-neutral-100">
+      <div className="space-y-3 pt-2 border-t border-white/10">
         <label className={labelClass}>Extra Details</label>
 
         {header.showDepartment && (
@@ -316,7 +342,7 @@ const HeaderPanel: React.FC = () => {
           </div>
           <div>
             <label className={labelClass}>Year</label>
-            <input type="text" value={header.year} onChange={(e) => updateHeader({ year: e.target.value })} className={inputClass} placeholder="2025–2026" />
+            <input type="text" value={header.year} onChange={(e) => updateHeader({ year: e.target.value })} className={inputClass} placeholder="2025-2026" />
           </div>
         </div>
       </div>

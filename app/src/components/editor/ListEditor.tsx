@@ -1,6 +1,7 @@
 import React from 'react';
-import { type Section, type ListContent, type ListItem } from '../../store/usePosterStore';
+import { type Section, type ListContent, type ListItem, type SectionStyle } from '../../store/usePosterStore';
 import { Plus, Trash2 } from 'lucide-react';
+import { usePosterStore } from '../../store/usePosterStore';
 
 interface Props {
   section: Section;
@@ -9,6 +10,10 @@ interface Props {
 
 const ListEditor: React.FC<Props> = ({ section, onUpdate }) => {
   const content = section.content as ListContent;
+  const updateSection = usePosterStore((s) => s.updateSection);
+  const style = section.style ?? {};
+  const setStyle = (patch: Partial<SectionStyle>) =>
+    updateSection(section.id, { style: { ...style, ...patch } });
 
   const updateItem = (i: number, partial: Partial<ListItem>) => {
     const items = content.items.map((item, idx) => (idx === i ? { ...item, ...partial } : item));
@@ -59,6 +64,54 @@ const ListEditor: React.FC<Props> = ({ section, onUpdate }) => {
             </label>
           ))}
         </div>
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">Visual Style</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {(['compact', 'minimal', 'badges', 'checklist', 'timeline'] as const).map((variant) => (
+            <button
+              key={variant}
+              onClick={() => setStyle({ listVariant: variant })}
+              className={`text-[10px] py-1.5 px-2 rounded border capitalize ${
+                (style.listVariant ?? 'compact') === variant
+                  ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                  : 'border-neutral-200 text-neutral-500 hover:border-indigo-200'
+              }`}
+            >
+              {variant}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">Density</label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {(['tight', 'normal', 'relaxed'] as const).map((density) => (
+            <button
+              key={density}
+              onClick={() => setStyle({ listDensity: density })}
+              className={`text-[10px] py-1.5 px-2 rounded border capitalize ${
+                (style.listDensity ?? 'tight') === density
+                  ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                  : 'border-neutral-200 text-neutral-500 hover:border-indigo-200'
+              }`}
+            >
+              {density}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold text-neutral-500 mb-1">Marker Size</label>
+        <input
+          type="range"
+          min="8"
+          max="22"
+          step="1"
+          value={style.listMarkerSize ?? 12}
+          onChange={(e) => setStyle({ listMarkerSize: parseInt(e.target.value) })}
+          className="w-full accent-indigo-600"
+        />
       </div>
       <div>
         <div className="flex items-center justify-between mb-1.5">

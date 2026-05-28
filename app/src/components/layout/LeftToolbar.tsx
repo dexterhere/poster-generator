@@ -17,7 +17,7 @@ const TOOLS: { id: PanelId; icon: React.ReactNode; label: string }[] = [
 
 const LeftToolbar: React.FC<LeftToolbarProps> = ({ activePanel, onPanelToggle }) => {
   return (
-    <div className="w-14 flex-shrink-0 bg-white border-r border-neutral-200 flex flex-col items-center py-3 gap-1 z-30 print:hidden">
+    <div className="w-[56px] flex-shrink-0 glass-toolbar flex flex-col items-center py-3 gap-1 z-30 print:hidden">
       {TOOLS.map((tool) => {
         const isActive = activePanel === tool.id;
         return (
@@ -25,10 +25,10 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ activePanel, onPanelToggle })
             key={tool.id}
             onClick={() => onPanelToggle(tool.id)}
             title={tool.label}
-            className={`w-10 h-10 flex flex-col items-center justify-center rounded-xl gap-0.5 transition-all ${
+            className={`w-11 h-11 flex flex-col items-center justify-center rounded-xl gap-0.5 transition-all ${
               isActive
-                ? 'bg-indigo-50 text-indigo-600'
-                : 'text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100'
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                : 'text-white/30 hover:text-white/70 hover:bg-white/5 border border-transparent'
             }`}
           >
             {tool.icon}

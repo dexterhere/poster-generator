@@ -1,21 +1,23 @@
 import React, { useRef, useState } from 'react';
 import { usePosterStore } from '../../store/usePosterStore';
-import { Download, FileJson, Upload, CheckCircle, Printer, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, FileJson, Upload, CheckCircle, Printer, ChevronDown, ChevronUp, FileImage, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
 import { createPosterDraft, normalizeLoadedDraft } from '../../utils/draft';
+import { autoLayoutSections, hasUsablePosition } from '../../utils/autoLayout';
+import { exportPosterToPDF, exportPosterToPNG, downloadBlob } from '../../utils/pdfExport';
+import { useToast } from '../ui/ToastContext';
+import { analyzePrintReadiness, improvePosterReadability } from '../../utils/printReadiness';
 
 const ExportPanel: React.FC = () => {
   const state = usePosterStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exported, setExported] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { addToast } = useToast();
 
   const handlePrint = () => {
     const { width, height } = state.layout;
     state.setSelectedSection(null);
-
-    // Our coordinate system is 1px = 1mm.
-    // CSS pixels at 96 dpi = 25.4/96 mm each, so to make 1px render as 1mm
-    // we must scale up by 96/25.4 ≈ 3.7795.
     const CSS_PX_PER_MM = 96 / 25.4;
 
     const styleEl = document.createElement('style');
@@ -39,12 +41,38 @@ const ExportPanel: React.FC = () => {
       }
     `;
     document.head.appendChild(styleEl);
-
     window.print();
-
     window.addEventListener('afterprint', () => {
       document.getElementById('__poster-print-size__')?.remove();
     }, { once: true });
+  };
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await exportPosterToPDF();
+      downloadBlob(blob, `poster-${state.layout.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+      addToast('PDF exported successfully', 'success');
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      addToast('PDF export failed. Try using Print instead.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPNG = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await exportPosterToPNG();
+      downloadBlob(blob, `poster-${state.layout.name.replace(/\s+/g, '-').toLowerCase()}.png`);
+      addToast('PNG exported successfully', 'success');
+    } catch (err) {
+      console.error('PNG export failed:', err);
+      addToast('PNG export failed.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleSaveDraft = () => {
@@ -58,159 +86,7 @@ const ExportPanel: React.FC = () => {
     URL.revokeObjectURL(url);
     setExported(true);
     setTimeout(() => setExported(false), 2000);
-  };
-
-  const handleDownloadTemplate = () => {
-    const contentTemplate = {
-      _instructions: [
-        "This is the schema template for the Academic Poster Generator.",
-        "Replace all placeholder values with real content from your project.",
-        "Do NOT change 'type' field values — the app uses them to render each section correctly.",
-        "Do NOT change 'id' field values.",
-        "Remove this '_instructions' key before uploading.",
-        "Output raw JSON only — no markdown code fences, no extra text."
-      ],
-      header: {
-        projectTitle: "Your Full Project Title",
-        studentName: "Your Full Name",
-        studentId: "1234567",
-        supervisorName: "Dr. Supervisor Name",
-        readerName: "Prof. Reader Name"
-      },
-      sections: [
-        {
-          id: "section-1",
-          title: "Introduction",
-          type: "text",
-          _schema: "type=text: use 'body' for the main paragraph and 'highlightBox' for a single key takeaway sentence.",
-          content: {
-            body: "Write 3–4 sentences describing the problem, motivation, and purpose of your project. Keep it accessible to a general academic audience.",
-            highlightBox: "One sentence stating the core contribution or novelty of your work."
-          }
-        },
-        {
-          id: "section-2",
-          title: "Research Question",
-          type: "question",
-          _schema: "type=question: 'questionText' is the central research question; 'subtext' is the hypothesis or expected finding.",
-          content: {
-            questionText: "How can [technology/approach] be used to [achieve goal] in the context of [domain]?",
-            subtext: "This study hypothesises that [expected outcome] will result from [approach], as evidenced by [indicator]."
-          }
-        },
-        {
-          id: "section-3",
-          title: "Aims & Objectives",
-          type: "list",
-          _schema: "type=list: 'intro' is an optional paragraph above the list (use for the project Aim). 'style' is 'bullet' or 'numbered'. Each item has 'text' (required) and optional 'tag' (short label like 'O1').",
-          content: {
-            style: "numbered",
-            intro: "The aim of this project is to [overall aim in one sentence].",
-            items: [
-              { tag: "O1", text: "Objective one — start with a verb, e.g. Develop a..." },
-              { tag: "O2", text: "Objective two — start with a verb, e.g. Evaluate the..." },
-              { tag: "O3", text: "Objective three — start with a verb, e.g. Implement a..." },
-              { tag: "O4", text: "Objective four — start with a verb, e.g. Test and validate..." }
-            ]
-          }
-        },
-        {
-          id: "section-4",
-          title: "Literature Review",
-          type: "table",
-          _schema: "type=table: 'columns' is a string array of header names; 'rows' is a 2D array where each inner array matches the columns in order. Only use sources from the attached document — do not fabricate.",
-          content: {
-            columns: ["Author & Year", "Focus", "Key Finding", "Relevance to Project"],
-            rows: [
-              ["Smith et al. (2021)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
-              ["Jones (2020)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
-              ["Patel & Lee (2022)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
-              ["Brown (2019)", "Topic of paper", "Main finding from the paper", "How it relates to your project"],
-              ["Ahmed et al. (2023)", "Topic of paper", "Main finding from the paper", "How it relates to your project"]
-            ]
-          }
-        },
-        {
-          id: "section-5",
-          title: "Methodology",
-          type: "flow",
-          _schema: "type=flow: 'direction' is 'horizontal' or 'vertical'. Each step has 'name' (short label), 'description' (1 sentence), and 'highlight' (true for the most important/novel step).",
-          content: {
-            direction: "horizontal",
-            steps: [
-              { name: "Requirements", description: "Gathered and analysed user and system requirements.", highlight: false },
-              { name: "Design", description: "Designed system architecture and data models.", highlight: false },
-              { name: "Implementation", description: "Built the core system using [technology/framework].", highlight: true },
-              { name: "Testing", description: "Conducted unit, integration, and user acceptance testing.", highlight: false },
-              { name: "Evaluation", description: "Evaluated outcomes against the original objectives.", highlight: false }
-            ]
-          }
-        },
-        {
-          id: "section-6",
-          title: "Key Results",
-          type: "stats",
-          _schema: "type=stats: 'stats' is an array of { value, label } pairs. 'value' should be short (number, %, grade). 'label' should be under 4 words. Only use real values from your document.",
-          content: {
-            stats: [
-              { value: "95%", label: "Test Accuracy" },
-              { value: "4", label: "Sprints Completed" },
-              { value: "12", label: "User Testers" },
-              { value: "A", label: "System Usability Score" }
-            ]
-          }
-        },
-        {
-          id: "section-7",
-          title: "System Diagram",
-          type: "image",
-          _schema: "type=image: set 'imageUrl' to null — the user will upload the image in the poster builder. Write a descriptive 'caption'. 'fit' is 'contain' or 'cover'.",
-          content: {
-            imageUrl: null,
-            caption: "Figure 1: [Describe what diagram this should be, e.g. System architecture diagram showing the three-tier structure of the application.]",
-            fit: "contain"
-          }
-        },
-        {
-          id: "section-8",
-          title: "Evaluation & Reflection",
-          type: "list",
-          _schema: "type=list: Use 'intro' for an overall summary sentence. Each item is one honest, analytical bullet point about what worked, what did not, or what was learned.",
-          content: {
-            style: "bullet",
-            intro: "Overall, the project successfully achieved its primary aim, with the following key reflections.",
-            items: [
-              { text: "What worked well — e.g. The modular architecture allowed rapid feature iteration." },
-              { text: "What could be improved — e.g. More time should have been allocated to user testing." },
-              { text: "What was learned — e.g. Working with [technology] provided insight into [concept]." },
-              { text: "An honest limitation — e.g. The dataset used was small and may not generalise." }
-            ]
-          }
-        },
-        {
-          id: "section-9",
-          title: "Future Scope",
-          type: "list",
-          _schema: "type=list: Each item is a specific, actionable future direction. Avoid vague phrases like 'improve performance' — be concrete.",
-          content: {
-            style: "numbered",
-            intro: "",
-            items: [
-              { text: "Specific future direction 1 — e.g. Extend the system to support [feature] using [technology]." },
-              { text: "Specific future direction 2 — e.g. Conduct a large-scale user study with [N] participants." },
-              { text: "Specific future direction 3 — e.g. Integrate with [external system] to enable [capability]." }
-            ]
-          }
-        }
-      ]
-    };
-    const blob = new Blob([JSON.stringify(contentTemplate, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `poster-content-template.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    addToast('Draft saved to downloads', 'success');
   };
 
   const handleLoadDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,45 +98,23 @@ const ExportPanel: React.FC = () => {
         const data = normalizeLoadedDraft(JSON.parse(ev.target?.result as string));
         if (data.header) state.updateHeader(data.header);
         if (data.footer) state.updateFooter(data.footer);
-        if (data.theme)  state.updateTheme(data.theme);
+        if (data.theme) state.updateTheme(data.theme);
         if (data.layout) state.updateLayout(data.layout);
 
         if (Array.isArray(data.sections) && data.sections.length > 0) {
-          // Clear existing sections first so loaded sections don't stack on old ones
-          state.sections.forEach((s) => state.deleteSection(s.id));
-
-          // Auto-layout constants — cascade sections in a grid if no position provided
-          const COLS       = 2;
-          const CELL_W     = 380;
-          const CELL_H     = 220;
-          const GAP        = 16;
-          const START_X    = 20;
-          const START_Y    = 110; // below poster header
-
-          data.sections.forEach((s, idx: number) => {
-            // Assign a staggered grid position if the section has no position data
-            if (!s.position || (s.position.x === 0 && s.position.y === 0 && !s.position.width)) {
-              const col = idx % COLS;
-              const row = Math.floor(idx / COLS);
-              s.position = {
-                x: START_X + col * (CELL_W + GAP),
-                y: START_Y + row * (CELL_H + GAP),
-                width:  CELL_W,
-                height: CELL_H,
-                zIndex: idx + 1,
-              };
-            }
-
-            // Ensure id is unique
-            if (!s.id) s.id = `section-${Date.now()}-${idx}`;
-
-            state.addSection(s);
-          });
+          const nextLayout = data.layout ? { ...state.layout, ...data.layout } : state.layout;
+          const nextTheme = data.theme ? { ...state.theme, ...data.theme } : state.theme;
+          const needsLayout = data.sections.some((section) => !hasUsablePosition(section));
+          state.setSections(
+            needsLayout
+              ? autoLayoutSections(data.sections, nextLayout, nextTheme, { preserveExistingPositions: true })
+              : data.sections,
+          );
         }
 
-        alert('Draft loaded successfully!');
+        addToast('Draft loaded successfully', 'success');
       } catch {
-        alert('Invalid draft file. Please use a valid JSON draft.');
+        addToast('Invalid draft file. Please use a valid JSON draft.', 'error');
       }
     };
     reader.readAsText(file);
@@ -269,149 +123,222 @@ const ExportPanel: React.FC = () => {
 
   const { width, height } = state.layout;
   const orientation = width >= height ? 'Landscape' : 'Portrait';
+  const printReport = analyzePrintReadiness(state);
+  const highPriorityIssues = printReport.issues.filter((issue) => issue.severity !== 'info').slice(0, 5);
+
+  const handleImproveReadability = () => {
+    state.sections.forEach((section) => {
+      state.updateSection(section.id, { style: improvePosterReadability(section) });
+    });
+    if (state.header.titleFontSize < 26 || state.header.infoFontSize < 9) {
+      state.updateHeader({
+        titleFontSize: Math.max(state.header.titleFontSize, 26),
+        infoFontSize: Math.max(state.header.infoFontSize, 9),
+      });
+    }
+    addToast('Text readability improved for print', 'success');
+  };
+
+  const sectionClass = "p-4 rounded-xl border border-white/10 bg-white/[0.03]";
+  const labelClass = "block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-3";
+  const buttonClass = "w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all";
 
   return (
     <div className="p-4 space-y-4">
-
       {/* PDF Export */}
-      <div className="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl border border-indigo-100">
+      <div className={sectionClass}>
         <div className="flex items-center justify-between mb-1">
-          <p className="text-sm font-bold text-indigo-800">Export / Print Poster</p>
-          <span className="text-[10px] font-semibold bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
+          <p className="text-sm font-bold text-indigo-300">Export Poster</p>
+          <span className="text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/20">
             {state.layout.name}
           </span>
         </div>
-        <p className="text-[11px] text-indigo-600 mb-3 leading-relaxed">
-          Opens the browser print dialog. The page size is automatically set to{' '}
-          <strong>{width} × {height} mm ({orientation})</strong> to match your poster exactly.
+        <p className="text-[11px] text-white/40 mb-3 leading-relaxed">
+          Download print-ready files at exactly {width} x {height} mm ({orientation}).
         </p>
+
+        <div className="space-y-2">
+          <button
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className={`${buttonClass} bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 disabled:opacity-40`}
+          >
+            {isExporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            Export PDF (Recommended)
+          </button>
+          <button
+            onClick={handleExportPNG}
+            disabled={isExporting}
+            className={`${buttonClass} bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 disabled:opacity-40`}
+          >
+            {isExporting ? <Loader2 size={15} className="animate-spin" /> : <FileImage size={15} />}
+            Export PNG (High Res)
+          </button>
+          <button
+            onClick={handlePrint}
+            className={`${buttonClass} bg-white/5 hover:bg-white/10 text-white/70 border border-white/10`}
+          >
+            <Printer size={15} />
+            Quick Print
+          </button>
+        </div>
+      </div>
+
+      {/* Print Readability */}
+      <div className={sectionClass}>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p className="text-sm font-bold text-indigo-300">Print Readability</p>
+            <p className="text-[11px] text-white/40 mt-0.5">
+              Checks whether A1 poster text will be clear after printing.
+            </p>
+          </div>
+          <div
+            className="w-14 h-14 rounded-2xl border flex flex-col items-center justify-center"
+            style={{
+              borderColor: printReport.score >= 85 ? 'rgba(52,211,153,0.35)' : printReport.score >= 65 ? 'rgba(251,191,36,0.35)' : 'rgba(248,113,113,0.35)',
+              background: printReport.score >= 85 ? 'rgba(52,211,153,0.10)' : printReport.score >= 65 ? 'rgba(251,191,36,0.10)' : 'rgba(248,113,113,0.10)',
+            }}
+          >
+            <span className="text-lg font-bold text-white">{printReport.score}</span>
+            <span className="text-[9px] text-white/40">score</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-center">
+            <p className="text-sm font-bold text-red-300">{printReport.errorCount}</p>
+            <p className="text-[9px] text-white/35 uppercase">Errors</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-center">
+            <p className="text-sm font-bold text-amber-300">{printReport.warningCount}</p>
+            <p className="text-[9px] text-white/35 uppercase">Warnings</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-center">
+            <p className="text-sm font-bold text-sky-300">{printReport.infoCount}</p>
+            <p className="text-[9px] text-white/35 uppercase">Notes</p>
+          </div>
+        </div>
+
+        {highPriorityIssues.length > 0 ? (
+          <div className="space-y-2">
+            {highPriorityIssues.map((issue) => (
+              <div
+                key={issue.id}
+                className="rounded-lg border px-3 py-2"
+                style={{
+                  borderColor: issue.severity === 'error' ? 'rgba(248,113,113,0.25)' : 'rgba(251,191,36,0.25)',
+                  background: issue.severity === 'error' ? 'rgba(248,113,113,0.08)' : 'rgba(251,191,36,0.08)',
+                }}
+              >
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={13} className={issue.severity === 'error' ? 'text-red-300' : 'text-amber-300'} />
+                  <div>
+                    <p className={issue.severity === 'error' ? 'text-[11px] font-bold text-red-200' : 'text-[11px] font-bold text-amber-200'}>
+                      {issue.label}
+                    </p>
+                    <p className="text-[10px] text-white/45 leading-snug mt-0.5">{issue.detail}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-[11px] text-emerald-200">
+            Poster text meets the current A1 readability checks.
+          </div>
+        )}
+
         <button
-          onClick={handlePrint}
-          className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+          onClick={handleImproveReadability}
+          className={`${buttonClass} mt-3 bg-white/5 hover:bg-white/10 text-white/80 border border-white/10`}
         >
-          <Printer size={15} />
-          Export / Print Poster
+          <Wand2 size={15} />
+          Improve Text Readability
         </button>
+        <p className="text-[10px] text-white/25 mt-2 leading-relaxed">
+          Recommended minimums: body {printReport.minimumBodySize}px, table cells {printReport.minimumTableSize}px, with enough space around dense sections.
+        </p>
       </div>
 
       {/* Print Instructions */}
-      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-        <p className="text-[11px] font-bold text-amber-800 mb-2">Print Instructions</p>
-        <ol className="text-[10px] text-amber-700 space-y-1.5 list-decimal list-inside leading-relaxed">
-          <li>Click <strong>Export / Print Poster</strong> above.</li>
-          <li>In the print dialog, set <strong>Destination</strong> to "Save as PDF" or your printer.</li>
-          <li>
-            Under <strong>More settings → Paper size</strong>, select{' '}
-            <strong>{state.layout.name} ({width} × {height} mm)</strong>.
-          </li>
-          <li>Set <strong>Margins</strong> to <strong>None</strong>.</li>
-          <li>Set <strong>Scale</strong> to <strong>100%</strong> (do not use "Fit to page").</li>
-          <li>Print or save. Take the PDF to a print shop and request the exact paper size.</li>
+      <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+        <p className="text-[11px] font-bold text-amber-400 mb-2">Print Instructions</p>
+        <ol className="text-[10px] text-amber-300/80 space-y-1.5 list-decimal list-inside leading-relaxed">
+          <li>Click <strong>Export PDF</strong> above for best results.</li>
+          <li>Open the PDF and verify the page size matches your poster.</li>
+          <li>Print with <strong>no margins</strong> and <strong>100% scale</strong>.</li>
+          <li>Take to a print shop and request the exact paper size.</li>
         </ol>
-        <p className="text-[10px] text-amber-600 mt-2 font-medium">
-          The page size is automatically embedded — your poster will print at exactly {width} × {height} mm.
-        </p>
-      </div>
-
-      {/* Getting Started / AI Guide */}
-      <div className="border border-neutral-200 rounded-lg overflow-hidden">
-        <button
-          onClick={() => setShowGuide(!showGuide)}
-          className="w-full flex items-center justify-between px-3 py-2.5 bg-neutral-50 hover:bg-neutral-100 transition-colors text-left"
-        >
-          <span className="text-[11px] font-bold text-neutral-600 uppercase tracking-widest">
-            Getting Started Guide
-          </span>
-          {showGuide ? <ChevronUp size={14} className="text-neutral-400" /> : <ChevronDown size={14} className="text-neutral-400" />}
-        </button>
-
-        {showGuide && (
-          <div className="p-3 space-y-3 text-[10px] text-neutral-600 leading-relaxed">
-            <div>
-              <p className="font-bold text-neutral-700 mb-1">Step 1 — Set your paper size</p>
-              <p>Go to the <strong>Theme</strong> tab. Select your paper size (A1 recommended for academic posters) and orientation (Portrait or Landscape). Your canvas will update immediately.</p>
-            </div>
-            <div>
-              <p className="font-bold text-neutral-700 mb-1">Step 2 — Fill in the header</p>
-              <p>Go to the <strong>Header</strong> tab. Enter your project title, your name, student ID, supervisor, and second reader. Upload your university/college logos if available.</p>
-            </div>
-            <div>
-              <p className="font-bold text-neutral-700 mb-1">Step 3 — Add sections to the canvas</p>
-              <p><strong>Right-click anywhere</strong> on the white canvas area to add a section. Choose from: Text, Image, Table, Process Flow, List, Stats Hub, or Research Question. Drag to reposition and resize by dragging the corners.</p>
-            </div>
-            <div>
-              <p className="font-bold text-neutral-700 mb-1">Step 4 — Edit section content</p>
-              <p>Click any section to select it, then edit its content in the right inspector. You can also double-click text directly on the canvas for quick inline edits. Give each section a clear title (e.g. "Introduction", "Methodology", "Results").</p>
-            </div>
-            <div>
-              <p className="font-bold text-neutral-700 mb-1">Step 5 — Style your poster</p>
-              <p>Use the <strong>Theme</strong> tab to pick a colour theme, font pairing, and section card style. Use "Filled Header" for a professional look with a coloured header bar on each section.</p>
-            </div>
-            <div>
-              <p className="font-bold text-neutral-700 mb-1">Step 6 — Save your work</p>
-              <p>Refreshing this page clears unsaved work. Click <strong>Save Draft as JSON</strong> regularly to keep a backup, then reload using <strong>Load Draft from JSON</strong>. Note: locally uploaded images are not saved in the draft, and layout positions may need rearranging after loading.</p>
-            </div>
-            <div>
-              <p className="font-bold text-neutral-700 mb-1">Step 7 — Export and print</p>
-              <p>Click <strong>Export / Print Poster</strong>. In the browser print dialog, confirm the paper size matches your poster size, set margins to None, and scale to 100%. Save as PDF and take to a print shop.</p>
-            </div>
-            <div className="pt-2 border-t border-neutral-100">
-              <p className="font-bold text-neutral-700 mb-1">Using AI to write your poster content</p>
-              <p className="mb-1">You can use an AI assistant (ChatGPT, Claude, etc.) to help draft content for each section. Try these prompts:</p>
-              <ul className="space-y-1 list-disc list-inside text-neutral-500">
-                <li>"Write a 3-sentence introduction for a poster about [your project]."</li>
-                <li>"Summarise the key methodology of [your project] in 4 bullet points for an academic poster."</li>
-                <li>"Write a clear research question and hypothesis for [your project] in 2 sentences."</li>
-                <li>"List 3 key results from [your project] in a format suitable for a poster stats section."</li>
-                <li>"Write a concise conclusion for an academic poster about [your project], max 60 words."</li>
-              </ul>
-              <p className="mt-1.5 text-neutral-500">Paste the AI-generated text directly into the relevant section editor. Keep text short — posters are read from a distance.</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Save & Load */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">Save & Load</p>
-        <button
-          onClick={handleSaveDraft}
-          className="w-full flex items-center justify-center gap-2 py-2.5 bg-neutral-800 text-white text-sm font-semibold rounded-lg hover:bg-neutral-700 transition-colors"
-        >
-          {exported ? <CheckCircle size={15} /> : <FileJson size={15} />}
-          {exported ? 'Saved!' : 'Save Draft as JSON'}
-        </button>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-neutral-300 text-neutral-700 text-sm font-semibold rounded-lg hover:border-neutral-500 transition-colors"
-        >
-          <Upload size={15} />
-          Load Draft from JSON
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          className="hidden"
-          onChange={handleLoadDraft}
-        />
-        <p className="text-[10px] text-neutral-400 text-center mb-4">
-          Note: Refresh clears unsaved work. JSON draft excludes local image files, and loaded drafts may need manual section rearrangement.
-        </p>
-
-        <div className="pt-4 border-t border-neutral-200">
-          <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest mb-2">Content Template</p>
+      <div className={sectionClass}>
+        <p className={labelClass}>Save & Load</p>
+        <div className="space-y-2">
           <button
-            onClick={handleDownloadTemplate}
-            className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-indigo-200 text-indigo-600 text-[11px] font-bold uppercase rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+            onClick={handleSaveDraft}
+            className={`${buttonClass} bg-white/5 hover:bg-white/10 text-white/80 border border-white/10`}
           >
-            <Download size={13} />
-            Download JSON Template
+            {exported ? <CheckCircle size={15} className="text-emerald-400" /> : <FileJson size={15} />}
+            {exported ? 'Saved!' : 'Save Draft as JSON'}
           </button>
-          <p className="text-[10px] text-neutral-400 mt-2 text-center leading-relaxed">
-            Download a clean JSON file to edit your poster's text and image URLs externally, then upload it above.
-          </p>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className={`${buttonClass} bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 border-dashed`}
+          >
+            <Upload size={15} />
+            Load Draft from JSON
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleLoadDraft}
+          />
         </div>
+        <p className="text-[10px] text-white/20 text-center mt-2">
+          JSON draft excludes local image files.
+        </p>
+      </div>
+
+      {/* Getting Started Guide */}
+      <div className="border border-white/10 rounded-lg overflow-hidden">
+        <button
+          onClick={() => setShowGuide(!showGuide)}
+          className="w-full flex items-center justify-between px-3 py-2.5 bg-white/5 hover:bg-white/10 transition-colors text-left"
+        >
+          <span className="text-[11px] font-bold text-white/50 uppercase tracking-widest">
+            Getting Started Guide
+          </span>
+          {showGuide ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
+        </button>
+
+        {showGuide && (
+          <div className="p-3 space-y-3 text-[10px] text-white/40 leading-relaxed">
+            <div>
+              <p className="font-bold text-white/60 mb-1">Step 1 — Set your paper size</p>
+              <p>Go to the <strong>Theme</strong> tab. Select your paper size and orientation.</p>
+            </div>
+            <div>
+              <p className="font-bold text-white/60 mb-1">Step 2 — Fill in the header</p>
+              <p>Go to the <strong>Header</strong> tab. Enter your project title, name, and supervisor details.</p>
+            </div>
+            <div>
+              <p className="font-bold text-white/60 mb-1">Step 3 — Add sections</p>
+              <p><strong>Right-click</strong> on the canvas to add sections. Drag to move, resize by dragging corners.</p>
+            </div>
+            <div>
+              <p className="font-bold text-white/60 mb-1">Step 4 — Edit content</p>
+              <p>Click any section to select it, then edit in the right inspector. Double-click text for quick inline edits.</p>
+            </div>
+            <div>
+              <p className="font-bold text-white/60 mb-1">Step 5 — Export</p>
+              <p>Click <strong>Export PDF</strong> for the best print results. Use Quick Print as a fallback.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

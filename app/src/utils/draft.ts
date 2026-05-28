@@ -4,6 +4,7 @@ import {
   type PosterState,
   type Section,
   type SectionContent,
+  type SectionStyle,
   type SectionType,
 } from '../store/usePosterStore';
 
@@ -26,6 +27,7 @@ const sanitizeSectionContentForDraft = (
     return {
       ...content,
       imageUrl: null,
+      imageId: null,
     } as SectionContent;
   }
 
@@ -33,7 +35,9 @@ const sanitizeSectionContentForDraft = (
     return {
       ...content,
       leftImageUrl: null,
+      leftImageId: null,
       rightImageUrl: null,
+      rightImageId: null,
     } as SectionContent;
   }
 
@@ -63,28 +67,78 @@ const normalizeSectionContent = (type: SectionType, content: unknown): SectionCo
   return sanitizeSectionContentForDraft(type, merged);
 };
 
-const normalizeSectionStyle = (style: unknown): Section['style'] =>
-  isObject(style)
-    ? {
-        ...style,
-        padding: typeof style.padding === 'number' ? style.padding : 12,
-        titleFontSize: typeof style.titleFontSize === 'number' ? style.titleFontSize : undefined,
-        titleFontFamily:
-          style.titleFontFamily === 'display' || style.titleFontFamily === 'body' || style.titleFontFamily === 'mono'
-            ? style.titleFontFamily
-            : undefined,
-        titleAlign:
-          style.titleAlign === 'left' || style.titleAlign === 'center' || style.titleAlign === 'right'
-            ? style.titleAlign
-            : undefined,
-        borderRadius: typeof style.borderRadius === 'number' ? style.borderRadius : undefined,
-        tableHeaderBgColor: typeof style.tableHeaderBgColor === 'string' ? style.tableHeaderBgColor : undefined,
-        tableHeaderTextColor: typeof style.tableHeaderTextColor === 'string' ? style.tableHeaderTextColor : undefined,
-        tableCellTextColor: typeof style.tableCellTextColor === 'string' ? style.tableCellTextColor : undefined,
-        tableHeaderFontSize: typeof style.tableHeaderFontSize === 'number' ? style.tableHeaderFontSize : undefined,
-        tableCellFontSize: typeof style.tableCellFontSize === 'number' ? style.tableCellFontSize : undefined,
-      }
-    : { padding: 12 };
+const validContainerStyles = [
+  'default', 'none', 'card', 'outline', 'accent-top', 'filled',
+  'minimal', 'glass', 'accent-left', 'elevated', 'soft-fill',
+  'bordered-pill', 'ghost',
+];
+
+const normalizeSectionStyle = (style: unknown): SectionStyle => {
+  if (!isObject(style)) return { padding: 12 };
+
+  const result: SectionStyle = { padding: 12 };
+
+  if (typeof style.padding === 'number') result.padding = style.padding;
+  if (typeof style.fontSize === 'number') result.fontSize = style.fontSize;
+  if (typeof style.titleFontSize === 'number') result.titleFontSize = style.titleFontSize;
+  if (typeof style.titlePaddingX === 'number') result.titlePaddingX = style.titlePaddingX;
+  if (typeof style.titlePaddingY === 'number') result.titlePaddingY = style.titlePaddingY;
+  if (style.titleFontFamily === 'display' || style.titleFontFamily === 'body' || style.titleFontFamily === 'mono')
+    result.titleFontFamily = style.titleFontFamily;
+  if (style.titleAlign === 'left' || style.titleAlign === 'center' || style.titleAlign === 'right')
+    result.titleAlign = style.titleAlign;
+  if (typeof style.borderRadius === 'number') result.borderRadius = style.borderRadius;
+  if (style.textAlign === 'left' || style.textAlign === 'center' || style.textAlign === 'right')
+    result.textAlign = style.textAlign;
+  if (style.fontWeight === 'normal' || style.fontWeight === 'bold') result.fontWeight = style.fontWeight;
+  if (style.fontStyle === 'normal' || style.fontStyle === 'italic') result.fontStyle = style.fontStyle;
+  if (typeof style.lineHeight === 'number') result.lineHeight = style.lineHeight;
+  if (typeof style.letterSpacing === 'number') result.letterSpacing = style.letterSpacing;
+  if (style.textTransform === 'none' || style.textTransform === 'uppercase' || style.textTransform === 'capitalize')
+    result.textTransform = style.textTransform;
+  if (typeof style.tableHeaderBgColor === 'string') result.tableHeaderBgColor = style.tableHeaderBgColor;
+  if (typeof style.tableHeaderTextColor === 'string') result.tableHeaderTextColor = style.tableHeaderTextColor;
+  if (typeof style.tableCellTextColor === 'string') result.tableCellTextColor = style.tableCellTextColor;
+  if (typeof style.tableHeaderFontSize === 'number') result.tableHeaderFontSize = style.tableHeaderFontSize;
+  if (typeof style.tableCellFontSize === 'number') result.tableCellFontSize = style.tableCellFontSize;
+  if (
+    style.tableVariant === 'classic'
+    || style.tableVariant === 'minimal'
+    || style.tableVariant === 'zebra'
+    || style.tableVariant === 'ruled'
+    || style.tableVariant === 'presentation'
+    || style.tableVariant === 'matrix'
+  ) result.tableVariant = style.tableVariant;
+  if (style.tableDensity === 'compact' || style.tableDensity === 'cozy' || style.tableDensity === 'roomy')
+    result.tableDensity = style.tableDensity;
+  if (style.tableBorderStyle === 'none' || style.tableBorderStyle === 'subtle' || style.tableBorderStyle === 'grid')
+    result.tableBorderStyle = style.tableBorderStyle;
+  if (typeof style.tableStriped === 'boolean') result.tableStriped = style.tableStriped;
+  if (style.tableHeaderCase === 'none' || style.tableHeaderCase === 'uppercase' || style.tableHeaderCase === 'capitalize')
+    result.tableHeaderCase = style.tableHeaderCase;
+  if (
+    style.listVariant === 'compact'
+    || style.listVariant === 'badges'
+    || style.listVariant === 'minimal'
+    || style.listVariant === 'checklist'
+    || style.listVariant === 'timeline'
+  ) result.listVariant = style.listVariant;
+  if (style.listDensity === 'tight' || style.listDensity === 'normal' || style.listDensity === 'relaxed')
+    result.listDensity = style.listDensity;
+  if (typeof style.listMarkerSize === 'number') result.listMarkerSize = style.listMarkerSize;
+  if (
+    style.questionVariant === 'statement'
+    || style.questionVariant === 'spotlight'
+    || style.questionVariant === 'compact'
+    || style.questionVariant === 'framed'
+    || style.questionVariant === 'side-accent'
+  ) result.questionVariant = style.questionVariant;
+  if (typeof style.containerStyle === 'string' && validContainerStyles.includes(style.containerStyle))
+    result.containerStyle = style.containerStyle as SectionStyle['containerStyle'];
+  if (typeof style.hideTitle === 'boolean') result.hideTitle = style.hideTitle;
+
+  return result;
+};
 
 const normalizeSectionPosition = (position: unknown): Section['position'] | undefined => {
   if (!isObject(position)) {
@@ -113,9 +167,25 @@ const normalizeSectionType = (type: unknown): SectionType =>
     : 'text';
 
 const normalizeHeaderLayout = (layout: unknown): HeaderLayout =>
-  typeof layout === 'string' && ['academic', 'minimal', 'banner', 'centered'].includes(layout)
+  typeof layout === 'string' && [
+    'academic', 'minimal', 'banner', 'centered', 'split', 'modern',
+    'corporate', 'classic', 'bold', 'simple-line', 'two-column',
+    'logo-dominant', 'text-dominant', 'underline-accent', 'framed',
+    'pill-badge', 'dark-band', 'sidebar-left', 'sidebar-right',
+  ].includes(layout)
     ? (layout as HeaderLayout)
     : 'academic';
+
+const normalizeTheme = (theme: unknown): Partial<PosterState['theme']> | undefined => {
+  if (!isObject(theme)) return undefined;
+
+  return {
+    ...theme,
+    gridSize: typeof theme.gridSize === 'number' ? theme.gridSize : 20,
+    snapToGrid: typeof theme.snapToGrid === 'boolean' ? theme.snapToGrid : false,
+    headerEnabled: typeof theme.headerEnabled === 'boolean' ? theme.headerEnabled : true,
+  } as Partial<PosterState['theme']>;
+};
 
 export const normalizeLoadedDraft = (raw: unknown): Partial<PosterDraft> & { sections?: Section[] } => {
   if (!isObject(raw)) {
@@ -144,8 +214,9 @@ export const normalizeLoadedDraft = (raw: unknown): Partial<PosterDraft> & { sec
     normalized.footer = data.footer as PosterState['footer'];
   }
 
-  if (isObject(data.theme)) {
-    normalized.theme = data.theme as PosterState['theme'];
+  const theme = normalizeTheme(data.theme);
+  if (theme) {
+    normalized.theme = theme as PosterState['theme'];
   }
 
   if (isObject(data.layout)) {
@@ -175,6 +246,7 @@ export const normalizeLoadedDraft = (raw: unknown): Partial<PosterDraft> & { sec
             zIndex: idx + 1,
           },
           style: normalizeSectionStyle(cleanSection.style),
+          locked: typeof cleanSection.locked === 'boolean' ? cleanSection.locked : false,
           content: normalizeSectionContent(type, cleanSection.content),
         };
       });

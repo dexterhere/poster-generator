@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePosterStore, defaultContentForType, type SectionType } from '../../store/usePosterStore';
 import { Pencil, Trash2, Plus, GripVertical, LayoutGrid } from 'lucide-react';
+import { autoLayoutSections } from '../../utils/autoLayout';
 
 const SECTION_TYPE_LABELS: Record<SectionType, string> = {
   text:          'Text',
@@ -32,38 +33,11 @@ const SectionsListPanel: React.FC = () => {
     setSelectedSection(newId);
   };
 
-  /**
-   * Auto-arrange: shortest-column-first packing.
-   * Preserves each section's aspect ratio while fitting it to the column width.
-   */
   const handleAutoArrange = () => {
     if (sections.length === 0) return;
 
-    const HEADER_H  = 90;
-    const FOOTER_H  = theme.footerEnabled ? 36 : 0;
-    const MARGIN    = 12;
-    const availW    = layout.width  - MARGIN * 2;
-    const availH    = layout.height - HEADER_H - FOOTER_H - MARGIN * 2;
-    const cols      = layout.width > layout.height ? 3 : 2;
-    const colW      = Math.floor((availW - MARGIN * (cols - 1)) / cols);
-    const colHeights = new Array<number>(cols).fill(0);
-
-    sections.forEach((s) => {
-      // Pick shortest column
-      const col    = colHeights.indexOf(Math.min(...colHeights));
-      const x      = MARGIN + col * (colW + MARGIN);
-      const y      = HEADER_H + MARGIN + colHeights[col];
-
-      // Preserve aspect ratio, clamp height
-      const origW  = s.position?.width  ?? 300;
-      const origH  = s.position?.height ?? 200;
-      const ratio  = origH / origW;
-      const h      = Math.max(100, Math.min(Math.round(colW * ratio), availH - colHeights[col] - MARGIN));
-
-      updateSection(s.id, {
-        position: { ...(s.position ?? { zIndex: 1 }), x, y, width: colW, height: h },
-      });
-      colHeights[col] += h + MARGIN;
+    autoLayoutSections(sections, layout, theme).forEach((section) => {
+      updateSection(section.id, { position: section.position });
     });
   };
 
@@ -73,7 +47,7 @@ const SectionsListPanel: React.FC = () => {
       <div className="flex gap-2">
         <button
           onClick={handleAdd}
-          className="flex-1 py-2 border-2 border-dashed border-neutral-300 rounded-lg text-sm text-neutral-500 font-medium hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-1.5"
+          className="flex-1 py-2 border-2 border-dashed border-white/20 rounded-lg text-sm text-white/50 font-medium hover:border-indigo-400/40 hover:text-indigo-300 transition-colors flex items-center justify-center gap-1.5"
         >
           <Plus size={14} /> Add Section
         </button>
@@ -81,7 +55,7 @@ const SectionsListPanel: React.FC = () => {
           <button
             onClick={handleAutoArrange}
             title="Auto-arrange all sections into a balanced grid"
-            className="px-3 py-2 border-2 border-neutral-200 rounded-lg text-neutral-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1.5 text-sm font-medium"
+            className="px-3 py-2 border border-white/10 rounded-lg text-white/50 hover:border-indigo-400/30 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors flex items-center gap-1.5 text-sm font-medium"
           >
             <LayoutGrid size={14} />
             <span className="text-xs">Arrange</span>
@@ -92,7 +66,7 @@ const SectionsListPanel: React.FC = () => {
       {/* Section list */}
       <div className="space-y-2">
         {sections.length === 0 && (
-          <p className="text-center text-[11px] text-neutral-400 py-6 border-2 border-dashed border-neutral-200 rounded-lg">
+          <p className="text-center text-[11px] text-white/30 py-6 border-2 border-dashed border-white/10 rounded-lg">
             Right-click the canvas to add your first section.
           </p>
         )}
@@ -104,33 +78,33 @@ const SectionsListPanel: React.FC = () => {
               onClick={() => setSelectedSection(isSelected ? null : section.id)}
               className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all group ${
                 isSelected
-                  ? 'border-indigo-400 bg-indigo-50 shadow-sm'
-                  : 'border-neutral-200 bg-white hover:border-indigo-200 hover:bg-neutral-50'
+                  ? 'border-indigo-400/40 bg-indigo-500/10'
+                  : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
               }`}
             >
-              <GripVertical size={12} className="text-neutral-300 flex-shrink-0" />
+              <GripVertical size={12} className="text-white/20 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-700' : 'text-neutral-800'}`}>
+                <p className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-300' : 'text-white/80'}`}>
                   {section.title}
                 </p>
-                <p className="text-[10px] text-neutral-400">
+                <p className="text-[10px] text-white/40">
                   {SECTION_TYPE_LABELS[section.type]}
-                  <span className="ml-1.5 text-neutral-300">
-                    {section.position?.width ?? 0}×{section.position?.height ?? 0}
+                  <span className="ml-1.5 text-white/20">
+                    {section.position?.width ?? 0}x{section.position?.height ?? 0}
                   </span>
                 </p>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => { e.stopPropagation(); setSelectedSection(section.id); }}
-                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-indigo-100 text-indigo-500"
+                  className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-indigo-500/20 text-indigo-300"
                   title="Edit"
                 >
                   <Pencil size={11} />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteSection(section.id); }}
-                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-100 text-red-500"
+                  className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-red-400"
                   title="Delete"
                 >
                   <Trash2 size={11} />

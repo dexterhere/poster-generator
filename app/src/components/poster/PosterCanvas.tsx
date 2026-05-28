@@ -13,6 +13,7 @@ import {
   defaultContentForType,
 } from "../../store/usePosterStore";
 import SectionRenderer from "../sections/SectionRenderer";
+import InlineEditableText from "../sections/InlineEditableText";
 import { hexOpacity } from "../../utils/colorUtils";
 import {
   Type,
@@ -23,12 +24,6 @@ import {
   AlignLeft,
   BarChart3,
   HelpCircle,
-  X,
-  AlignCenterHorizontal,
-  AlignCenterVertical,
-  Copy,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
 
 // ─── Per-section error boundary ───────────────────────────────────────────────
@@ -59,8 +54,6 @@ class SectionErrorBoundary extends Component<
     return this.props.children;
   }
 }
-
-const HEADER_HEIGHT = 90; // estimated poster header px height for centering calculations
 
 const SECTION_CARD_STYLES = {
   thin: (color: string) => ({
@@ -151,6 +144,18 @@ function resolveContainerStyle(
       background: hexOpacity(primaryColor, 12),
       borderRadius: "10px",
     };
+  if (cs === "bordered-pill")
+    return {
+      border: `1px solid ${hexOpacity(primaryColor, 40)}`,
+      background: "white",
+      borderRadius: "9999px",
+    };
+  if (cs === "ghost")
+    return {
+      border: "none",
+      background: "transparent",
+      boxShadow: "none",
+    };
   return SECTION_CARD_STYLES["thin"](primaryColor);
 }
 
@@ -158,13 +163,46 @@ const MENU_OPTIONS: {
   icon: React.ReactNode;
   label: string;
   type: SectionType;
+  title?: string;
+  content?: Section["content"];
+  style?: Section["style"];
 }[] = [
   { icon: <Type size={14} />, label: "Text", type: "text" },
+  {
+    icon: <Type size={14} />,
+    label: "Quote / Takeaway",
+    type: "text",
+    title: "Key Takeaway",
+    content: { body: "Add a short evidence-backed quote or takeaway here.", highlightBox: "Why this matters in one sentence." },
+    style: { fontSize: 12, containerStyle: "minimal", hideTitle: false, textAlign: "center" },
+  },
   { icon: <Image size={14} />, label: "Image", type: "image" },
   { icon: <AlignLeft size={14} />, label: "Split Image", type: "split-image" },
   { icon: <Table size={14} />, label: "Table", type: "table" },
   { icon: <GitCommit size={14} />, label: "Process Flow", type: "flow" },
+  {
+    icon: <GitCommit size={14} />,
+    label: "Timeline",
+    type: "flow",
+    title: "Project Timeline",
+    content: {
+      direction: "horizontal",
+      steps: [
+        { name: "Plan", description: "Define goals", highlight: false },
+        { name: "Build", description: "Create solution", highlight: true },
+        { name: "Test", description: "Validate outcome", highlight: false },
+      ],
+    },
+  },
   { icon: <LayoutList size={14} />, label: "List", type: "list" },
+  {
+    icon: <LayoutList size={14} />,
+    label: "References",
+    type: "list",
+    title: "References",
+    content: { style: "bullet", intro: "", items: [{ text: "Author, Year, Title, Source." }, { text: "Author, Year, Title, Source." }] },
+    style: { fontSize: 8, containerStyle: "ghost" },
+  },
   { icon: <BarChart3 size={14} />, label: "Stats Hub", type: "stats" },
   {
     icon: <HelpCircle size={14} />,
@@ -179,17 +217,25 @@ interface PosterCanvasProps {
   scale: number;
 }
 
+type SelectionBox = {
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  additive: boolean;
+};
+
 const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
   const {
     sections,
     theme,
-    layout,
-    selectedSectionId,
+    selectedSectionIds,
     setSelectedSection,
+    setSelectedSections,
+    toggleSectionSelection,
     updateSection,
     updateSectionContent,
     addSection,
-    deleteSection,
   } = usePosterStore();
   const canvasRef = useRef<HTMLDivElement>(null);
   const idCounterRef = useRef(0);
@@ -197,6 +243,7 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
     x: number;
     y: number;
   } | null>(null);
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
 
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -218,12 +265,6 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
     return `section-${idCounterRef.current}`;
   };
 
-  const getMaxZIndex = () =>
-    sections.reduce((max, item) => Math.max(max, item.position?.zIndex ?? 1), 1);
-
-  const getMinZIndex = () =>
-    sections.reduce((min, item) => Math.min(min, item.position?.zIndex ?? 1), 1);
-
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!canvasRef.current) return;
@@ -236,7 +277,7 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
     });
   };
 
-  const handleAddSection = (type: SectionType) => {
+  const handleAddSection = (option: typeof MENU_OPTIONS[number]) => {
     if (!contextMenu) return;
     const newId = nextSectionId();
     addSection({
@@ -248,28 +289,96 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
         height: 200,
         zIndex: sections.length + 1,
       },
-      type,
-      title: `New ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-      content: defaultContentForType(type),
+      type: option.type,
+      title: option.title ?? `New ${option.type.charAt(0).toUpperCase() + option.type.slice(1)}`,
+      content: option.content ?? defaultContentForType(option.type),
+      style: option.style,
     });
     setContextMenu(null);
     setSelectedSection(newId);
   };
 
-  const handleCanvasClick = () => {
-    setSelectedSection(null);
+  const getPosterPoint = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canvasRef.current) return null;
+    const rect = canvasRef.current.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / scale,
+      y: (e.clientY - rect.top) / scale,
+    };
   };
 
-  const handleCanvasMouseDownCapture = (
-    e: React.MouseEvent<HTMLDivElement>,
-  ) => {
+  const getSelectionRect = (box: SelectionBox) => {
+    const left = Math.min(box.startX, box.currentX);
+    const top = Math.min(box.startY, box.currentY);
+    const width = Math.abs(box.currentX - box.startX);
+    const height = Math.abs(box.currentY - box.startY);
+    return { left, top, width, height };
+  };
+
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     const clickedInsideSection = target.closest("[data-section-root='true']");
     const clickedContextMenu = target.closest("[data-context-menu='true']");
+    if (clickedInsideSection || clickedContextMenu) return;
 
-    if (!clickedInsideSection && !clickedContextMenu) {
-      setSelectedSection(null);
+    const point = getPosterPoint(e);
+    if (!point) return;
+    const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+    setContextMenu(null);
+    setSelectionBox({
+      startX: point.x,
+      startY: point.y,
+      currentX: point.x,
+      currentY: point.y,
+      additive,
+    });
+
+    if (!additive) {
+      setSelectedSections([]);
     }
+    e.preventDefault();
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!selectionBox) return;
+    const point = getPosterPoint(e);
+    if (!point) return;
+    setSelectionBox({ ...selectionBox, currentX: point.x, currentY: point.y });
+  };
+
+  const handleCanvasMouseUp = () => {
+    if (!selectionBox) return;
+    const selectionRect = getSelectionRect(selectionBox);
+    const isClick = selectionRect.width < 3 && selectionRect.height < 3;
+    if (isClick) {
+      if (!selectionBox.additive) setSelectedSections([]);
+      setSelectionBox(null);
+      return;
+    }
+
+    const selectedIds = sections
+      .filter((section) => {
+        const pos = section.position;
+        const sectionRight = pos.x + pos.width;
+        const sectionBottom = pos.y + pos.height;
+        const selectionRight = selectionRect.left + selectionRect.width;
+        const selectionBottom = selectionRect.top + selectionRect.height;
+        return (
+          pos.x < selectionRight &&
+          sectionRight > selectionRect.left &&
+          pos.y < selectionBottom &&
+          sectionBottom > selectionRect.top
+        );
+      })
+      .map((section) => section.id);
+
+    if (selectionBox.additive) {
+      setSelectedSections(Array.from(new Set([...selectedSectionIds, ...selectedIds])));
+    } else {
+      setSelectedSections(selectedIds);
+    }
+    setSelectionBox(null);
   };
 
   return (
@@ -277,10 +386,12 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
       ref={canvasRef}
       className="w-full h-full relative"
       onContextMenu={handleContextMenu}
-      onMouseDownCapture={handleCanvasMouseDownCapture}
+      onMouseDown={handleCanvasMouseDown}
+      onMouseMove={handleCanvasMouseMove}
+      onMouseUp={handleCanvasMouseUp}
     >
       {/* Background layer to catch clicks outside sections */}
-      <div className="absolute inset-0 z-0" onClick={handleCanvasClick} />
+      <div className="absolute inset-0 z-0" />
 
       {sections.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -291,20 +402,41 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
       )}
 
       {sections.map((section) => {
-        const isSelected = selectedSectionId === section.id;
+        const isMultiSelected = selectedSectionIds.includes(section.id);
         const hideTitle = section.style?.hideTitle ?? false;
         const borderRadius = section.style?.borderRadius ?? 12;
         const titleFontSize = section.style?.titleFontSize ?? 10;
+        const titlePaddingX = section.style?.titlePaddingX ?? 12;
+        const titlePaddingY = section.style?.titlePaddingY ?? 6;
         const titleFontFamily = section.style?.titleFontFamily ?? "display";
+        const titleFontWeight = section.style?.titleFontWeight ?? "bold";
+        const titleFontStyle = section.style?.titleFontStyle ?? "normal";
+        const titleLetterSpacing = section.style?.titleLetterSpacing ?? 0.25;
+        const titleTransform = section.style?.titleTransform ?? "uppercase";
         const titleAlign = section.style?.titleAlign ?? "left";
+        const isLocked = section.locked ?? false;
         const titleAlignClass =
           titleAlign === "center" ? "text-center" : titleAlign === "right" ? "text-right" : "text-left";
         const titleFontFamilyCss =
           titleFontFamily === "body"
             ? "var(--font-body)"
+            : titleFontFamily === "serif"
+            ? "Georgia, 'Times New Roman', serif"
+            : titleFontFamily === "sans"
+            ? "Inter, Arial, Helvetica, sans-serif"
             : titleFontFamily === "mono"
             ? "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+            : titleFontFamily === "condensed"
+            ? "'Arial Narrow', 'Roboto Condensed', Arial, sans-serif"
             : "var(--font-display)";
+        const titleFontWeightCss =
+          titleFontWeight === "black"
+            ? 900
+            : titleFontWeight === "bold"
+            ? 700
+            : titleFontWeight === "semibold"
+            ? 600
+            : 400;
         const baseContainerStyle = resolveContainerStyle(
           section,
           theme.borderStyle,
@@ -329,8 +461,8 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
         return (
           <Rnd
             scale={scale}
-            dragGrid={[1, 1]}
-            resizeGrid={[1, 1]}
+            dragGrid={theme.snapToGrid ? [theme.gridSize ?? 20, theme.gridSize ?? 20] : [1, 1]}
+            resizeGrid={theme.snapToGrid ? [theme.gridSize ?? 20, theme.gridSize ?? 20] : [1, 1]}
             key={section.id}
             size={{
               width: section.position?.width || 300,
@@ -341,6 +473,7 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
               y: section.position?.y || 0,
             }}
             onDragStop={(_e, d) => {
+              if (isLocked) return;
               updateSection(section.id, {
                 position: {
                   ...(section.position || {
@@ -354,6 +487,7 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
               });
             }}
             onResizeStop={(_e, _dir, ref, _delta, position) => {
+              if (isLocked) return;
               updateSection(section.id, {
                 position: {
                   ...(section.position || {
@@ -369,37 +503,56 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
-              setSelectedSection(section.id);
+              if (e.shiftKey || e.metaKey || e.ctrlKey) {
+                toggleSectionSelection(section.id);
+              } else {
+                setSelectedSection(section.id);
+              }
             }}
-            bounds="parent"
+            disableDragging={isLocked}
+            enableResizing={!isLocked}
             style={{
-              zIndex: isSelected ? 999 : (section.position?.zIndex || 1) + 10,
+              zIndex: isMultiSelected ? 999 : (section.position?.zIndex || 1) + 10,
             }}
             className="overflow-visible flex flex-col group select-none bg-white"
             dragHandleClassName="drag-handle"
             data-section-root="true"
           >
             <div
-              className="absolute inset-0 overflow-hidden shadow-sm"
+              className="absolute inset-0 overflow-hidden shadow-sm flex flex-col"
               style={containerStyle}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Drag handle / title bar */}
               {!hideTitle ? (
                 <div
-                  className="drag-handle px-3 py-1.5 flex-shrink-0 flex items-center cursor-move"
+                  className="drag-handle flex-shrink-0 flex items-center cursor-move"
                   style={{
                     ...headerBarStyle,
+                    paddingLeft: titlePaddingX,
+                    paddingRight: titlePaddingX,
+                    paddingTop: titlePaddingY,
+                    paddingBottom: titlePaddingY,
                     justifyContent:
                       titleAlign === "center" ? "center" : titleAlign === "right" ? "flex-end" : "flex-start",
                   }}
                 >
-                  <span
-                    className={`w-full font-bold uppercase tracking-wide truncate ${titleAlignClass}`}
-                    style={{ fontSize: `${titleFontSize}px`, fontFamily: titleFontFamilyCss }}
-                  >
-                    {section.title}
-                  </span>
+                  <InlineEditableText
+                    as="span"
+                    text={section.title}
+                    canEdit={isMultiSelected && !isLocked}
+                    multiline={false}
+                    className={`w-full truncate ${titleAlignClass}`}
+                    style={{
+                      fontSize: `${titleFontSize}px`,
+                      fontFamily: titleFontFamilyCss,
+                      fontWeight: titleFontWeightCss,
+                      fontStyle: titleFontStyle,
+                      letterSpacing: `${titleLetterSpacing}px`,
+                      textTransform: titleTransform,
+                    }}
+                    onCommit={(value) => updateSection(section.id, { title: value })}
+                  />
                 </div>
               ) : (
                 // Zero-height invisible handle so react-rnd keeps its drag hook
@@ -408,7 +561,7 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
 
               {/* Content area */}
               <div
-                className={`overflow-auto w-full ${hideTitle ? "h-full" : "h-[calc(100%-24px)]"}`}
+                className={`overflow-auto w-full ${hideTitle ? "h-full" : "flex-1"}`}
                 style={{
                   padding:
                     section.style?.padding !== undefined
@@ -422,19 +575,27 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
                       section={section}
                       primaryColor={theme.primaryColor}
                       borderStyle={theme.borderStyle}
-                      isSelected={isSelected}
+                      isSelected={isMultiSelected}
                       onUpdateContent={(contentPatch) =>
                         updateSectionContent(section.id, contentPatch)
                       }
                     />
                   </SectionErrorBoundary>
-                  {!isSelected && <div className="absolute inset-0 z-20" />}
+                  {!isMultiSelected && (
+                    <div
+                      className="absolute inset-0 z-20"
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSection(section.id);
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Selection ring — overlay above content */}
-            {isSelected && (
+            {isMultiSelected && (
               <div
                 className="absolute inset-0 ring-2 ring-indigo-500 ring-offset-1 pointer-events-none z-20 print:hidden editor-only-ui"
                 style={{ borderRadius: `${borderRadius}px` }}
@@ -442,139 +603,26 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
               />
             )}
 
-            {/* Quick Actions Toolbar */}
-            {isSelected && (
-              <div
-                className="absolute -top-10 left-1/2 -translate-x-1/2 bg-neutral-900 text-white p-1 rounded-lg flex items-center shadow-xl z-[1000] border border-neutral-700 pointer-events-auto print:hidden editor-only-ui"
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                data-editor-ui="true"
-              >
-                <div className="flex bg-neutral-800 rounded mx-1 p-0.5">
-                  <button
-                    onClick={() => {
-                      const baseSize = section.style?.fontSize ?? 9;
-                      const next = Math.max(7, baseSize - 1);
-                      updateSection(section.id, {
-                        style: { ...(section.style ?? {}), fontSize: next },
-                      });
-                    }}
-                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
-                    title="Decrease text size"
-                  >
-                    <Type size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      const baseSize = section.style?.fontSize ?? 9;
-                      const next = Math.min(32, baseSize + 1);
-                      updateSection(section.id, {
-                        style: { ...(section.style ?? {}), fontSize: next },
-                      });
-                    }}
-                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
-                    title="Increase text size"
-                  >
-                    <Type size={16} />
-                  </button>
-                </div>
-                <div className="w-px h-4 bg-neutral-700 mx-1" />
-                <div className="flex bg-neutral-800 rounded mx-1 p-0.5">
-                  <button
-                    onClick={() =>
-                      updateSection(section.id, {
-                        position: {
-                          ...section.position!,
-                          x:
-                            (layout.width - (section.position?.width || 300)) /
-                            2,
-                        },
-                      })
-                    }
-                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
-                    title="Center Horizontal"
-                  >
-                    <AlignCenterHorizontal size={14} />
-                  </button>
-                  <button
-                    onClick={() =>
-                      updateSection(section.id, {
-                        position: {
-                          ...section.position!,
-                          y:
-                            HEADER_HEIGHT +
-                            (layout.height -
-                              HEADER_HEIGHT -
-                              (section.position?.height || 200)) /
-                              2,
-                        },
-                      })
-                    }
-                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
-                    title="Center Vertical (in canvas body)"
-                  >
-                    <AlignCenterVertical size={14} />
-                  </button>
-                </div>
-                <div className="w-px h-4 bg-neutral-700 mx-1" />
-                <div className="flex bg-neutral-800 rounded mx-1 p-0.5">
-                  <button
-                    onClick={() =>
-                      updateSection(section.id, {
-                        position: { ...section.position!, zIndex: getMaxZIndex() + 1 },
-                      })
-                    }
-                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
-                    title="Bring to front"
-                  >
-                    <ArrowUp size={14} />
-                  </button>
-                  <button
-                    onClick={() =>
-                      updateSection(section.id, {
-                        position: { ...section.position!, zIndex: getMinZIndex() - 1 },
-                      })
-                    }
-                    className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors"
-                    title="Send to back"
-                  >
-                    <ArrowDown size={14} />
-                  </button>
-                </div>
-                <div className="w-px h-4 bg-neutral-700 mx-1" />
-                <button
-                  onClick={() => {
-                    const cloneId = nextSectionId();
-                    const maxZ = getMaxZIndex();
-                    addSection({
-                      ...section,
-                      id: cloneId,
-                      position: {
-                        ...section.position!,
-                        x: Math.min(layout.width - 80, (section.position?.x ?? 0) + 24),
-                        y: Math.min(layout.height - 80, (section.position?.y ?? 0) + 24),
-                        zIndex: maxZ + 1,
-                      },
-                    });
-                    setSelectedSection(cloneId);
-                  }}
-                  className="p-1.5 hover:bg-neutral-600 rounded text-neutral-300 hover:text-white transition-colors mx-1"
-                  title="Duplicate section"
-                >
-                  <Copy size={14} />
-                </button>
-                <button
-                  onClick={() => deleteSection(section.id)}
-                  className="p-1.5 hover:bg-red-500 rounded text-neutral-300 hover:text-white transition-colors mx-1"
-                  title="Delete section"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
           </Rnd>
         );
       })}
+
+      {selectionBox && (() => {
+        const rect = getSelectionRect(selectionBox);
+        return (
+          <div
+            className="absolute z-[998] pointer-events-none rounded-md border border-indigo-500 bg-indigo-500/10 print:hidden editor-only-ui"
+            style={{
+              left: rect.left,
+              top: rect.top,
+              width: rect.width,
+              height: rect.height,
+              boxShadow: "0 0 0 1px rgba(99,102,241,0.16) inset",
+            }}
+            data-editor-ui="true"
+          />
+        );
+      })()}
 
       {/* Context Menu */}
       {contextMenu && (
@@ -593,7 +641,7 @@ const PosterCanvas: React.FC<PosterCanvasProps> = ({ scale }) => {
           {MENU_OPTIONS.map((opt, i) => (
             <button
               key={i}
-              onClick={() => handleAddSection(opt.type)}
+              onClick={() => handleAddSection(opt)}
               className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-3 transition-colors"
             >
               {opt.icon}

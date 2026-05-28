@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,14 +6,101 @@
   * {
     box-sizing: border-box;
   }
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Font pairing classes applied to #poster-canvas.
-   CSS variables cascade to all descendant text elements. */
+/* ─── Theme Variables ─── */
+[data-editor-theme="dark"] {
+  --editor-bg: #0b0f19;
+  --editor-bg-secondary: #111827;
+  --editor-surface: rgba(255, 255, 255, 0.06);
+  --editor-surface-hover: rgba(255, 255, 255, 0.1);
+  --editor-border: rgba(255, 255, 255, 0.08);
+  --editor-border-hover: rgba(255, 255, 255, 0.14);
+  --editor-text: rgba(255, 255, 255, 0.9);
+  --editor-text-secondary: rgba(255, 255, 255, 0.5);
+  --editor-text-muted: rgba(255, 255, 255, 0.35);
+  --editor-text-inverse: #0f172a;
+  --editor-accent: #6366f1;
+  --editor-accent-hover: #818cf8;
+  --editor-accent-bg: rgba(99, 102, 241, 0.15);
+  --editor-input-bg: rgba(0, 0, 0, 0.25);
+  --editor-input-bg-focus: rgba(0, 0, 0, 0.35);
+  --editor-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --editor-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --editor-canvas-bg: #181b24;
+  --editor-canvas-dot: rgba(255, 255, 255, 0.04);
+  --editor-danger: #f87171;
+  --editor-success: #34d399;
+  --editor-warning: #fbbf24;
+}
+
+[data-editor-theme="light"] {
+  --editor-bg: #f3f4f6;
+  --editor-bg-secondary: #e5e7eb;
+  --editor-surface: rgba(255, 255, 255, 0.85);
+  --editor-surface-hover: rgba(255, 255, 255, 0.95);
+  --editor-border: rgba(0, 0, 0, 0.08);
+  --editor-border-hover: rgba(0, 0, 0, 0.15);
+  --editor-text: rgba(15, 23, 42, 0.9);
+  --editor-text-secondary: rgba(15, 23, 42, 0.55);
+  --editor-text-muted: rgba(15, 23, 42, 0.35);
+  --editor-text-inverse: #ffffff;
+  --editor-accent: #4f46e5;
+  --editor-accent-hover: #4338ca;
+  --editor-accent-bg: rgba(79, 70, 229, 0.1);
+  --editor-input-bg: rgba(0, 0, 0, 0.04);
+  --editor-input-bg-focus: rgba(0, 0, 0, 0.07);
+  --editor-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --editor-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --editor-canvas-bg: #d1d5db;
+  --editor-canvas-dot: rgba(0, 0, 0, 0.06);
+  --editor-danger: #dc2626;
+  --editor-success: #059669;
+  --editor-warning: #d97706;
+}
+
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="text-white/"],
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="text-white"] {
+  color: var(--editor-text-secondary) !important;
+}
+
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="border-white/"],
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome).border-white\/10,
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome).border-white\/5 {
+  border-color: var(--editor-border) !important;
+}
+
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="bg-white/"],
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="bg-white\\["] {
+  background-color: var(--editor-input-bg) !important;
+}
+
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="text-indigo-300"] {
+  color: var(--editor-accent) !important;
+}
+
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="text-red-400"] {
+  color: var(--editor-danger) !important;
+}
+
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="text-emerald-400"] {
+  color: var(--editor-success) !important;
+}
+
+[data-editor-theme="light"] :where(.glass-panel, .glass-toolbar, .glass-floating, .glass-chrome) [class*="text-amber-"] {
+  color: var(--editor-warning) !important;
+}
+
+/* ─── Font pairing classes applied to #poster-canvas ─── */
 .font-classic-academic {
   --font-display: 'Lora', Georgia, serif;
   --font-body: 'IBM Plex Sans', 'Helvetica Neue', sans-serif;
@@ -31,9 +117,32 @@
   --font-display: Georgia, serif;
   --font-body: Arial, Helvetica, sans-serif;
 }
+.font-poppins {
+  --font-display: 'Poppins', sans-serif;
+  --font-body: 'Poppins', sans-serif;
+}
+.font-inter {
+  --font-display: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+.font-merriweather {
+  --font-display: 'Merriweather', Georgia, serif;
+  --font-body: 'Merriweather', Georgia, serif;
+}
+.font-mono {
+  --font-display: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'JetBrains Mono', ui-monospace, monospace;
+}
+.font-roboto {
+  --font-display: 'Roboto', sans-serif;
+  --font-body: 'Roboto', sans-serif;
+}
+.font-opensans {
+  --font-display: 'Open Sans', sans-serif;
+  --font-body: 'Open Sans', sans-serif;
+}
 
-/* All poster text defaults to the chosen body font.
-   Section title bars (drag-handle) and headings use --font-display. */
+/* All poster text defaults to the chosen body font */
 #poster-canvas {
   font-family: var(--font-body, 'IBM Plex Sans', sans-serif);
 }
@@ -45,42 +154,164 @@
   font-family: var(--font-display, 'Lora', serif);
 }
 
-/* ─── Canvas workspace background (dot grid) ─── */
+/* ─── Glassmorphism Design System (theme-aware) ─── */
+@layer components {
+  .glass-panel {
+    background: var(--editor-surface);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid var(--editor-border);
+    box-shadow: var(--editor-shadow);
+  }
+
+  .glass-chrome {
+    background: var(--editor-surface);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border-bottom: 1px solid var(--editor-border);
+    box-shadow: var(--editor-shadow-sm);
+  }
+
+  .glass-content {
+    background: var(--editor-surface);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    border: 1px solid var(--editor-border);
+  }
+
+  .glass-button {
+    background: var(--editor-input-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--editor-border);
+    color: var(--editor-text);
+    transition: all 0.15s ease;
+  }
+  .glass-button:hover {
+    background: var(--editor-input-bg-focus);
+    border-color: var(--editor-border-hover);
+    transform: translateY(-1px);
+  }
+  .glass-button:active {
+    transform: translateY(0);
+  }
+
+  .glass-button-primary {
+    background: var(--editor-accent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--editor-accent-hover);
+    color: var(--editor-text-inverse);
+    transition: all 0.15s ease;
+  }
+  .glass-button-primary:hover {
+    background: var(--editor-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+  }
+
+  .glass-input {
+    background: var(--editor-input-bg);
+    border: 1px solid var(--editor-border);
+    color: var(--editor-text);
+    transition: all 0.15s ease;
+  }
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--editor-accent);
+    box-shadow: 0 0 0 3px var(--editor-accent-bg);
+    background: var(--editor-input-bg-focus);
+  }
+  .glass-input::placeholder {
+    color: var(--editor-text-muted);
+  }
+
+  .glass-card {
+    background: var(--editor-surface);
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    border: 1px solid var(--editor-border);
+    border-radius: 12px;
+    box-shadow: var(--editor-shadow);
+    transition: all 0.2s ease;
+  }
+  .glass-card:hover {
+    background: var(--editor-surface-hover);
+    border-color: var(--editor-border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--editor-shadow);
+  }
+
+  .glass-toolbar {
+    background: var(--editor-surface);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border-right: 1px solid var(--editor-border);
+  }
+
+  .glass-floating {
+    background: var(--editor-surface);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid var(--editor-border);
+    border-radius: 10px;
+    box-shadow: var(--editor-shadow);
+  }
+
+  .glass-divider {
+    background: var(--editor-border);
+    height: 1px;
+  }
+}
+
+/* ─── Canvas workspace background ─── */
 .canvas-workspace {
-  background-color: #c8cdd5;
-  background-image: radial-gradient(circle, #9ca3af 1px, transparent 1px);
-  background-size: 24px 24px;
-  /* Center the poster in available space; 'safe' prevents broken scrolling when poster overflows */
+  background-color: var(--editor-canvas-bg);
   display: flex;
   align-items: flex-start;
   justify-content: safe center;
 }
 
-/* Poster drop shadow */
+/* Poster physical presence */
 #poster-canvas {
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+  border-radius: 2px;
 }
 
-/* Print styles — @page size is injected dynamically by ExportPanel to match the selected paper size */
+/* ─── Scrollbar styling ─── */
+@layer base {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.5);
+  }
+}
+
+/* ─── Print styles ─── */
 @media print {
   .print\:hidden {
     display: none !important;
   }
-
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-
   html, body {
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
   }
-
-  /* Fix the poster to the page origin.
-     The injected <style> from ExportPanel sets the exact px size and
-     a scale(96/25.4) transform so that 1px = 1mm at print time. */
   #poster-canvas {
     position: fixed !important;
     top: 0 !important;

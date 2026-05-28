@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { usePosterStore } from '../../store/usePosterStore';
 import { hexOpacity } from '../../utils/colorUtils';
+import InlineEditableText from '../sections/InlineEditableText';
 
 // ─── Shared InfoBar ────────────────────────────────────────────────────────────
 // Renders student/supervisor/reader info according to the chosen infoLayout.
@@ -222,8 +223,30 @@ const PosterHeader: React.FC = () => {
   const headerPadding  = header.headerPadding  ?? 12;
   const infoFontSize   = header.infoFontSize   ?? 12;
 
+  if (theme.headerEnabled === false) return null;
+
   const titleBaseClass = 'font-bold uppercase tracking-tight leading-tight poster-title';
   const vPad = { paddingTop: headerPadding, paddingBottom: headerPadding };
+  const title = header.projectTitle || 'Your Project Title';
+  const renderTitle = (options: { light?: boolean; align?: 'left' | 'center' | 'right'; scale?: number } = {}) => {
+    const { light = false, align = 'center' } = options;
+    return (
+    <InlineEditableText
+      as="h1"
+      text={title}
+      canEdit
+      multiline={false}
+      editOnClick
+      className={titleBaseClass}
+      style={{
+        fontSize: titleFontSize * (options.scale ?? 1),
+        color: light ? '#ffffff' : '#1f2937',
+        textAlign: align,
+      }}
+      onCommit={(value) => updateHeader({ projectTitle: value })}
+    />
+    );
+  };
 
   // ─── Academic ─────────────────────────────────────────────────────────────
   if (header.headerLayout === 'academic') {
@@ -234,9 +257,7 @@ const PosterHeader: React.FC = () => {
       >
         <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
         <div className="flex-1 text-center flex flex-col items-center">
-          <h1 className={`${titleBaseClass} text-neutral-800`} style={{ fontSize: titleFontSize }}>
-            {header.projectTitle || 'Your Project Title'}
-          </h1>
+          {renderTitle()}
           <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
         </div>
         <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end" />
@@ -255,9 +276,7 @@ const PosterHeader: React.FC = () => {
             className="[&_img]:brightness-0 [&_img]:invert [&_div]:border-white/30 [&_div]:bg-white/10 [&_span]:text-white/60"
           />
           <div className="flex-1 text-center flex flex-col items-center">
-            <h1 className={`${titleBaseClass} text-white`} style={{ fontSize: titleFontSize }}>
-              {header.projectTitle || 'Your Project Title'}
-            </h1>
+            {renderTitle({ light: true })}
             <InfoBar primaryColor={theme.primaryColor} isWhite fontSize={infoFontSize} />
           </div>
           <LogoSlot
@@ -281,23 +300,249 @@ const PosterHeader: React.FC = () => {
           <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
           <LogoSlot url={header.collegeLogoUrl}    side="college"    onUpload={handleLogo} inputRef={collRef} />
         </div>
-        <h1 className={`${titleBaseClass} text-neutral-800`} style={{ fontSize: titleFontSize }}>
-          {header.projectTitle || 'Your Project Title'}
-        </h1>
+        {renderTitle()}
         <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
       </div>
     );
   }
 
   // ─── Minimal ──────────────────────────────────────────────────────────────
+  if (header.headerLayout === 'minimal') {
+    return (
+      <div
+        className="w-full flex flex-col items-center text-center px-10 border-b-2"
+        style={{ borderColor: theme.primaryColor, ...vPad }}
+      >
+        {renderTitle()}
+        <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'split') {
+    return (
+      <div className="w-full flex items-center gap-8 px-10 border-b-2" style={{ borderColor: theme.primaryColor, ...vPad }}>
+        <div className="flex items-center gap-4 flex-1">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <div className="flex-1">
+            {renderTitle({ align: 'left' })}
+          </div>
+        </div>
+        <div className="max-w-[38%] text-right">
+          <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'modern') {
+    return (
+      <div className="w-full px-10" style={vPad}>
+        <div className="flex items-center justify-between gap-6">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <div className="flex-1 text-center">
+            {renderTitle()}
+            <div className="h-1 w-24 mx-auto mt-2 rounded-full" style={{ backgroundColor: theme.primaryColor }} />
+            <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+          </div>
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end" />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'corporate') {
+    return (
+      <div className="w-full px-10 border-b" style={{ borderColor: '#d1d5db', ...vPad }}>
+        <div className="flex items-start gap-6">
+          <div className="w-2 self-stretch rounded-full" style={{ backgroundColor: theme.primaryColor }} />
+          <div className="flex-1">
+            {renderTitle({ align: 'left' })}
+            <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+          </div>
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'classic') {
+    return (
+      <div className="w-full px-10" style={vPad}>
+        <div className="border-y-2 py-3 flex items-center justify-between gap-6" style={{ borderColor: theme.primaryColor }}>
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <div className="flex-1 text-center">
+            {renderTitle()}
+            <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+          </div>
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end" />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'bold') {
+    return (
+      <div className="w-full px-10 border-b-4" style={{ borderColor: theme.primaryColor, ...vPad }}>
+        <div className="flex items-center gap-6">
+          <div className="flex-1">
+            {renderTitle({ align: 'left' })}
+            <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+          </div>
+          <div className="flex gap-4">
+            <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+            <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'simple-line') {
+    return (
+      <div className="w-full px-10 border-b" style={{ borderColor: theme.primaryColor, ...vPad }}>
+        <div className="flex items-baseline gap-5">
+          {renderTitle({ align: 'left', scale: 0.82 })}
+          <div className="flex-1 h-px" style={{ backgroundColor: theme.primaryColor }} />
+          <InfoBar primaryColor={theme.primaryColor} fontSize={Math.max(8, infoFontSize - 1)} />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'two-column') {
+    return (
+      <div className="w-full grid grid-cols-[1fr_280px] gap-8 px-10 border-b-2" style={{ borderColor: theme.primaryColor, ...vPad }}>
+        <div className="flex items-center gap-4">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          {renderTitle({ align: 'left' })}
+        </div>
+        <div className="flex flex-col items-end justify-center">
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end mb-1" />
+          <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'logo-dominant') {
+    return (
+      <div className="w-full px-10 border-b-2" style={{ borderColor: theme.primaryColor, ...vPad }}>
+        <div className="flex items-center justify-center gap-10 mb-2">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} className="[&_img]:max-h-20 [&_img]:max-w-[140px]" />
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="[&_img]:max-h-20 [&_img]:max-w-[140px]" />
+        </div>
+        <div className="text-center">
+          {renderTitle()}
+          <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'text-dominant') {
+    return (
+      <div className="w-full flex items-center gap-6 px-10 border-b-2" style={{ borderColor: theme.primaryColor, ...vPad }}>
+        <div className="flex-1 text-center">
+          {renderTitle()}
+          <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+        </div>
+        <div className="flex gap-3">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} className="[&_img]:max-h-12" />
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="[&_img]:max-h-12" />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'underline-accent') {
+    return (
+      <div className="w-full px-10" style={vPad}>
+        <div className="flex items-center justify-between gap-6">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <div className="flex-1 text-center">
+            {renderTitle()}
+            <div className="h-0.5 w-full mt-2" style={{ backgroundColor: theme.primaryColor }} />
+            <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+          </div>
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end" />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'framed') {
+    return (
+      <div className="w-full px-10" style={vPad}>
+        <div className="border-2 rounded-xl px-5 py-3 flex items-center justify-between gap-6" style={{ borderColor: theme.primaryColor }}>
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <div className="flex-1 text-center">
+            {renderTitle()}
+            <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+          </div>
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end" />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'pill-badge') {
+    return (
+      <div className="w-full px-10 border-b" style={{ borderColor: hexOpacity(theme.primaryColor, 80), ...vPad }}>
+        <div className="flex items-center justify-between gap-6">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <div className="flex-1 text-center">
+            {renderTitle()}
+            <div className="inline-flex rounded-full px-4 py-1 mt-2" style={{ backgroundColor: hexOpacity(theme.primaryColor, 18) }}>
+              <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+            </div>
+          </div>
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end" />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'dark-band') {
+    return (
+      <div className="w-full px-10 bg-neutral-900" style={vPad}>
+        <div className="flex items-center justify-between gap-6">
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} className="[&_div]:bg-white/10 [&_div]:border-white/30 [&_span]:text-white/60" />
+          <div className="flex-1 text-center">
+            {renderTitle({ light: true })}
+            <InfoBar primaryColor={theme.primaryColor} isWhite fontSize={infoFontSize} />
+          </div>
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end [&_div]:bg-white/10 [&_div]:border-white/30 [&_span]:text-white/60" />
+        </div>
+      </div>
+    );
+  }
+
+  if (header.headerLayout === 'sidebar-left' || header.headerLayout === 'sidebar-right') {
+    const rail = <div className="w-8 self-stretch" style={{ backgroundColor: theme.primaryColor }} />;
+    return (
+      <div className="w-full flex border-b" style={{ borderColor: '#e5e7eb' }}>
+        {header.headerLayout === 'sidebar-left' && rail}
+        <div className="flex-1 flex items-center justify-between gap-6 px-10" style={vPad}>
+          <LogoSlot url={header.universityLogoUrl} side="university" onUpload={handleLogo} inputRef={uniRef} />
+          <div className="flex-1 text-center">
+            {renderTitle()}
+            <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
+          </div>
+          <LogoSlot url={header.collegeLogoUrl} side="college" onUpload={handleLogo} inputRef={collRef} className="justify-end" />
+        </div>
+        {header.headerLayout === 'sidebar-right' && rail}
+      </div>
+    );
+  }
+
   return (
     <div
       className="w-full flex flex-col items-center text-center px-10 border-b-2"
       style={{ borderColor: theme.primaryColor, ...vPad }}
     >
-      <h1 className={`${titleBaseClass} text-neutral-800`} style={{ fontSize: titleFontSize }}>
-        {header.projectTitle || 'Your Project Title'}
-      </h1>
+      {renderTitle()}
       <InfoBar primaryColor={theme.primaryColor} fontSize={infoFontSize} />
     </div>
   );
